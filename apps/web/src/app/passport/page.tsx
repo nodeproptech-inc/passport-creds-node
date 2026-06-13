@@ -1,0 +1,297 @@
+'use client';
+
+import { useState, useEffect, useCallback, useRef } from 'react';
+import Link from 'next/link';
+import { ConnectWalletButton } from '@/components/wallet/ConnectWalletButton';
+import { ComplianceProgressStepper } from '@/components/passport/ComplianceProgressStepper';
+import { EvidenceCard } from '@/components/passport/EvidenceCard';
+import { PassportCard } from '@/components/passport/PassportCard';
+import { TransactionTimeline } from '@/components/passport/TransactionTimeline';
+import { AccessDecisionBanner } from '@/components/passport/AccessDecisionBanner';
+import {
+  getPassportState,
+  startVerification,
+  injectMockAiResult,
+  syncVerificationOnchain,
+} from '@/modules/passport/passport.service';
+import type { PassportState, ClaimType } from '@/modules/passport/passport.types';
+import { PRODUCT_NAME } from '@/modules/passport/passport.constants';
+
+const POLL_INTERVAL_MS = 3000;
+
+const ACTIVE_STATUSES = new Set(['PENDING', 'PROCESSING']);
+
+function isPollingNeeded(state: PassportState | null): boolean {
+  if (!state) return false;
+  return state.claims.some((c) => ACTIVE_STATUSES.has(c.status));
+}
+
+export default function PassportPage() {
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [passport, setPassport] = useState<PassportState | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [startingClaim, setStartingClaim] = useState<ClaimType | null>(null);
+  const [simulatingClaim, setSimulatingClaim] = useState<ClaimType | null>(null);
+  const [activeVerificationIds, setActiveVerificationIds] = useState<
+    Partial<Record<ClaimType, string>>
+  >({});
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const fetchPassport = useCallback(async (addr: string) => {
+    try {
+      const state = await getPassportState(addr);
+      setPassport(state);
+      setError(null);
+      return state;
+    } catch {
+      setError('Failed to load passport state.');
+      return null;
+    }
+  }, []);
+
+  const handleWalletConnect = useCallback(
+    async (address: string) => {
+      setWalletAddress(address);
+      setLoading(true);
+      await fetchPassport(address);
+      setLoading(false);
+    },
+    [fetchPassport]
+  );
+
+  // Polling while claims are PENDING / PROCESSING
+  useEffect(() => {
+    if (!walletAddress || !isPollingNeeded(passport)) {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+      return;
+    }
+    if (pollingRef.current) return;
+    pollingRef.current = setInterval(() => {
+      fetchPassport(walletAddress);
+    }, POLL_INTERVAL_MS);
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    };
+  }, [walletAddress, passport, fetchPassport]);
+
+  async function handleStartVerification(claimType: ClaimType) {
+    if (!walletAddress) return;
+    setStartingClaim(claimType);
+    try {
+      const result = await startVerification({ walletAddress, claimType });
+      setActiveVerificationIds((prev) => ({ ...prev, [claimType]: result.verificationId }));
+      await fetchPassport(walletAddress);
+    } catch {
+      setError(`Failed to start ${claimType} verification.`);
+    } finally {
+      setStartingClaim(null);
+    }
+  }
+
+  async function handleSimulate(claimType: ClaimType) {
+    if (!walletAddress) return;
+    setSimulatingClaim(claimType);
+    try {
+      let verificationId = activeVerificationIds[claimType];
+      if (!verificationId) {
+        const result = await startVerification({ walletAddress, claimType });
+        verificationId = result.verificationId;
+        setActiveVerificationIds((prev) => ({ ...prev, [claimType]: verificationId! }));
+      }
+      const scenario = claimType === 'KYC_AML_VERIFIED' ? 1 : 3;
+      await injectMockAiResult(verificationId, scenario as 1 | 3);
+      await fetchPassport(walletAddress);
+    } catch {
+      setError(`Failed to simulate ${claimType}.`);
+    } finally {
+      setSimulatingClaim(null);
+    }
+  }
+
+  async function handleSyncOnchain(claimType: ClaimType) {
+    const verificationId = activeVerificationIds[claimType];
+    if (!verificationId || !walletAddress) return;
+    try {
+      await syncVerificationOnchain(verificationId);
+      await fetchPassport(walletAddress);
+    } catch {
+      setError('Sync onchain failed.');
+    }
+  }
+
+  const kycClaim = passport?.claims.find((c) => c.claimType === 'KYC_AML_VERIFIED');
+  const accreditedClaim = passport?.claims.find((c) => c.claimType === 'ACCREDITED_INVESTOR');
+
+  return (
+    <div className="min-h-screen bg-[#F0F2F6]">
+      {/* Header */}
+      <header className="bg-white border-b border-[#DDE1EA]">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#4A9EFF] to-[#3DDBD9] flex items-center justify-center">
+              <span className="text-white text-xs font-bold">PC</span>
+            </div>
+            <span className="font-bold text-[#0D1428] text-sm">{PRODUCT_NAME}</span>
+          </Link>
+          <ConnectWalletButton onConnect={handleWalletConnect} address={walletAddress} />
+        </div>
+      </header>
+
+      <main className="max-w-6xl mx-auto px-6 py-8">
+        {/* Page title */}
+        <div className="mb-6">
+          <p className="text-[11px] font-semibold tracking-widest uppercase text-[#4A9EFF] mb-1">
+            Compliance Flow
+          </p>
+          <h1 className="text-2xl font-bold text-[#0D1428]">
+            Your{' '}
+            <span className="bg-gradient-to-r from-[#4A9EFF] to-[#3DDBD9] bg-clip-text text-transparent">
+              Compliance Passport
+            </span>
+          </h1>
+          <p className="text-sm text-[#4B5568] mt-1">
+            Connect your wallet and complete compliance verification to unlock the Node PropTech Deal Room.
+          </p>
+        </div>
+
+        {!walletAddress && (
+          <div className="bg-white border border-[#DDE1EA] rounded-2xl p-10 text-center shadow-sm mb-6">
+            <p className="text-4xl mb-4">🔗</p>
+            <h2 className="text-lg font-bold text-[#0D1428] mb-2">Connect Your Wallet</h2>
+            <p className="text-sm text-[#4B5568] mb-6">
+              Connect MetaMask to view your Compliance Passport.
+            </p>
+            <ConnectWalletButton onConnect={handleWalletConnect} address={null} />
+          </div>
+        )}
+
+        {loading && (
+          <div className="text-center py-12 text-[#4B5568] text-sm">Loading passport...</div>
+        )}
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600 mb-4">
+            {error}{' '}
+            <button
+              onClick={() => walletAddress && fetchPassport(walletAddress)}
+              className="underline ml-1"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {walletAddress && passport && !loading && (
+          <>
+            {/* Progress stepper */}
+            <div className="mb-6">
+              <ComplianceProgressStepper
+                walletConnected={!!walletAddress}
+                passportStatus={passport.status}
+                kycStatus={kycClaim?.status}
+                accreditedStatus={accreditedClaim?.status}
+              />
+            </div>
+
+            {/* Two-column layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+              {/* Left: Evidence cards */}
+              <div className="space-y-4">
+                <EvidenceCard
+                  title="KYC / AML Evidence"
+                  description="Submit KYC / AML evidence through Chainlink Confidential AI Attester. Once verified, this claim will be written onchain through Chainlink CRE."
+                  claimType="KYC_AML_VERIFIED"
+                  status={kycClaim?.status ?? 'UNVERIFIED'}
+                  summary={kycClaim?.summary ?? undefined}
+                  confidence={kycClaim?.confidence ?? undefined}
+                  transactionHash={kycClaim?.transactionHash ?? undefined}
+                  verificationId={activeVerificationIds['KYC_AML_VERIFIED']}
+                  onStartVerification={() => handleStartVerification('KYC_AML_VERIFIED')}
+                  onSimulate={() => handleSimulate('KYC_AML_VERIFIED')}
+                  onSyncOnchain={() => handleSyncOnchain('KYC_AML_VERIFIED')}
+                  isStarting={startingClaim === 'KYC_AML_VERIFIED'}
+                  isSimulating={simulatingClaim === 'KYC_AML_VERIFIED'}
+                />
+
+                <EvidenceCard
+                  title="Accredited Investor Evidence"
+                  description="Submit Accredited Investor evidence through Chainlink Confidential AI Attester. Once verified, investor access can be enabled."
+                  claimType="ACCREDITED_INVESTOR"
+                  status={accreditedClaim?.status ?? 'UNVERIFIED'}
+                  summary={accreditedClaim?.summary ?? undefined}
+                  confidence={accreditedClaim?.confidence ?? undefined}
+                  transactionHash={accreditedClaim?.transactionHash ?? undefined}
+                  verificationId={activeVerificationIds['ACCREDITED_INVESTOR']}
+                  onStartVerification={() => handleStartVerification('ACCREDITED_INVESTOR')}
+                  onSimulate={() => handleSimulate('ACCREDITED_INVESTOR')}
+                  onSyncOnchain={() => handleSyncOnchain('ACCREDITED_INVESTOR')}
+                  isStarting={startingClaim === 'ACCREDITED_INVESTOR'}
+                  isSimulating={simulatingClaim === 'ACCREDITED_INVESTOR'}
+                />
+
+                {/* Access decision */}
+                <AccessDecisionBanner
+                  passportStatus={passport.status}
+                  canAccessDealRoom={passport.canAccessDealRoom}
+                />
+              </div>
+
+              {/* Right: Passport card */}
+              <div>
+                <PassportCard
+                  walletAddress={walletAddress}
+                  status={passport.status}
+                  badges={passport.badges}
+                  passportTokenId={passport.passportTokenId}
+                  passportTxHash={passport.passportTxHash}
+                />
+
+                {/* Demo fallback controls */}
+                <div className="mt-4 bg-[#F8F9FC] border border-dashed border-[#DDE1EA] rounded-2xl p-4">
+                  <p className="text-[10px] font-semibold tracking-widest uppercase text-[#9CA3AF] mb-3">
+                    Demo Fallback Controls
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => handleSimulate('KYC_AML_VERIFIED')}
+                      disabled={!!simulatingClaim}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-dashed border-[#4A9EFF] text-[#4A9EFF] hover:bg-blue-50 transition-colors disabled:opacity-50"
+                    >
+                      ⚡ Simulate KYC/AML Verified
+                    </button>
+                    <button
+                      onClick={() => handleSimulate('ACCREDITED_INVESTOR')}
+                      disabled={!!simulatingClaim}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-dashed border-[#3DDBD9] text-[#3DDBD9] hover:bg-teal-50 transition-colors disabled:opacity-50"
+                    >
+                      ⚡ Simulate Accredited Investor
+                    </button>
+                    <button
+                      onClick={() => fetchPassport(walletAddress)}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-[#DDE1EA] text-[#9CA3AF] hover:border-[#4A9EFF] hover:text-[#4A9EFF] transition-colors"
+                    >
+                      ↻ Refresh
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-[#9CA3AF] mt-2">
+                    Demo only — bypasses real AI Attester flow
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Transaction timeline */}
+            <TransactionTimeline transactions={passport.transactions} />
+          </>
+        )}
+      </main>
+    </div>
+  );
+}
