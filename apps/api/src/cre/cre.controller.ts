@@ -2,7 +2,6 @@ import { Controller, Get, Post, Param, Body, HttpCode, HttpStatus, NotFoundExcep
 import { PrismaService } from '../prisma/prisma.service';
 import { TransactionsService } from '../transactions/transactions.service';
 import { normalizeAddress, calculatePassportStatus } from '../common/utils';
-import { TENANT_ID } from '../common/constants';
 import type { CREWorkflowResult, ClaimType, ClaimStatus, ComplianceClaimState } from '../common/types';
 
 // Endpoints consumed only by the CRE node — not exposed to the public frontend.
@@ -41,35 +40,49 @@ export class CREController {
   @HttpCode(HttpStatus.OK)
   async receiveWorkflowResult(@Body() body: CREWorkflowResult) {
     const walletAddress = normalizeAddress(body.walletAddress);
-    const { verificationId, claimType, transactionHash, passportStatus, tokenId } = body;
+    const { verificationId, claimType, approved, claimRegistryTxHash, passportTxHash } = body;
     const now = new Date();
 
-    const approved = body.transactionHash !== undefined;
     const claimStatus: ClaimStatus = approved ? 'VERIFIED' : 'FAILED';
+    const txStatus = claimRegistryTxHash?.startsWith('0x') ? 'SIMULATED' : 'CONFIRMED';
 
     // Update the ComplianceClaim to its final status
     await this.prisma.complianceClaim.updateMany({
       where: { walletAddress, claimType: claimType as any },
       data: {
         status: claimStatus as any,
-        transactionHash,
+        transactionHash: claimRegistryTxHash ?? null,
+        approved,
         verifiedAt: claimStatus === 'VERIFIED' ? now : null,
         failedAt: claimStatus === 'FAILED' ? now : null,
       },
     });
 
-    // Save the ClaimRegistry transaction record
+    // Save ClaimRegistry transaction record
     await this.transactions.save({
       walletAddress,
       verificationId,
       claimType,
       contractName: 'ClaimRegistry',
       action: `${claimType} = ${claimStatus}`,
-      transactionHash,
-      status: body.simulated ? 'SIMULATED' : 'CONFIRMED',
+      transactionHash: claimRegistryTxHash,
+      status: txStatus,
     });
 
-    // Recalculate passport status from all current claims
+    // Save CompliancePassport transaction record if available
+    if (passportTxHash) {
+      await this.transactions.save({
+        walletAddress,
+        verificationId,
+        claimType,
+        contractName: 'CompliancePassport',
+        action: 'syncPassport',
+        transactionHash: passportTxHash,
+        status: txStatus,
+      });
+    }
+
+    // Recalculate passport status from all current claims (source of truth is DB)
     const allClaims = await this.prisma.complianceClaim.findMany({ where: { walletAddress } });
     const claimStates: ComplianceClaimState[] = allClaims.map((c) => ({
       walletAddress: c.walletAddress,
@@ -92,8 +105,7 @@ export class CREController {
       where: { walletAddress },
       data: {
         passportStatus: recalculated as any,
-        passportTokenId: tokenId ? String(tokenId) : undefined,
-        passportTxHash: transactionHash,
+        passportTxHash: passportTxHash ?? claimRegistryTxHash ?? null,
       },
     });
 
@@ -103,12 +115,12 @@ export class CREController {
       data: {
         status: 'COMPLETED',
         creStatus: 'COMPLETED',
-        transactionHash,
+        transactionHash: claimRegistryTxHash ?? null,
         creCompletedAt: now,
         completedAt: now,
       },
     });
 
-    return { ok: true, passportStatus: recalculated };
+    return { received: true, verificationId, passportStatus: recalculated };
   }
 }

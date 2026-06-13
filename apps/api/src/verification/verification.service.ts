@@ -6,6 +6,7 @@ import {
   buildAttestationHash,
   buildVerificationIdHash,
   dateToSeconds,
+  resolveExpiresAt,
 } from '../common/utils';
 import { SUPPORTED_CLAIM_TYPES, CLAIM_TYPE_HASHES, TENANT_ID } from '../common/constants';
 import type { IContractAdapter } from '../contract/contract-adapter.interface';
@@ -120,6 +121,8 @@ export class VerificationService {
       ...mock,
     });
 
+    const expiresAt = resolveExpiresAt();
+
     await this.prisma.verificationSession.update({
       where: { id: verificationId },
       data: {
@@ -129,6 +132,7 @@ export class VerificationService {
         reasonCode: mock.reasonCode,
         summary: mock.summary,
         attestationHash,
+        expiresAt,
         webhookReceivedAt: new Date(),
         creStatus: 'NOT_STARTED',
       },
@@ -152,6 +156,7 @@ export class VerificationService {
         summary: mock.summary,
         attestationHash,
         verificationId,
+        expiresAt,
       },
       update: {
         status: 'PROCESSING',
@@ -161,6 +166,7 @@ export class VerificationService {
         summary: mock.summary,
         attestationHash,
         verificationId,
+        expiresAt,
       },
     });
 

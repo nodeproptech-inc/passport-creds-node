@@ -145,6 +145,15 @@ export async function syncPassport(walletAddress: `0x${string}`): Promise<{
     };
   }
 
+  // Simulate first to get the return values (tokenId, status)
+  const { result } = await publicClient.simulateContract({
+    address: COMPLIANCE_PASSPORT_ADDRESS,
+    abi: COMPLIANCE_PASSPORT_ABI,
+    functionName: 'syncPassport',
+    args: [walletAddress],
+    account,
+  });
+
   const hash = await walletClient.writeContract({
     address: COMPLIANCE_PASSPORT_ADDRESS,
     abi: COMPLIANCE_PASSPORT_ABI,
@@ -152,28 +161,12 @@ export async function syncPassport(walletAddress: `0x${string}`): Promise<{
     args: [walletAddress],
   });
 
-  const receipt = await publicClient.waitForTransactionReceipt({ hash });
+  await publicClient.waitForTransactionReceipt({ hash });
 
-  // Read the updated passport status after the tx
-  const statusIndex = await publicClient.readContract({
-    address: COMPLIANCE_PASSPORT_ADDRESS,
-    abi: [
-      {
-        type: 'function',
-        name: 'getPassportStatus',
-        inputs: [{ name: 'user', type: 'address' }],
-        outputs: [{ name: '', type: 'uint8' }],
-        stateMutability: 'view',
-      },
-    ] as const,
-    functionName: 'getPassportStatus',
-    args: [walletAddress],
-  });
-
-  void receipt;
+  const [tokenIdBig, statusIndex] = result as [bigint, number];
   return {
     transactionHash: hash,
-    tokenId: '1',
+    tokenId: String(tokenIdBig),
     passportStatus: onchainStatusToString(Number(statusIndex)),
     simulated: false,
   };

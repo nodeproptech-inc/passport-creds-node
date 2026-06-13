@@ -1,11 +1,11 @@
-import crypto from 'crypto';
+import { createHash } from 'crypto';
 import { keccak256, toBytes, isAddress, getAddress } from 'viem';
 import { BadRequestException } from '@nestjs/common';
 import { DEFAULT_CLAIM_EXPIRY_DAYS } from './constants';
 import type { ClaimStatus, PassportStatus, ComplianceClaimState } from './types';
 
 export function buildAttestationHash(input: object): string {
-  return `0x${crypto.createHash('sha256').update(JSON.stringify(input)).digest('hex')}`;
+  return `0x${createHash('sha256').update(JSON.stringify(input)).digest('hex')}`;
 }
 
 export function buildVerificationIdHash(verificationId: string): `0x${string}` {

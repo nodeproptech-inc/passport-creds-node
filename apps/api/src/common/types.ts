@@ -124,11 +124,18 @@ export type CREVerificationResult = {
 };
 
 export type CREWorkflowResult = {
+  success: boolean;
   verificationId: string;
   walletAddress: string;
   claimType: ClaimType;
-  transactionHash: string;
-  passportStatus: PassportStatus;
-  tokenId?: number;
-  simulated: boolean;
+  approved: boolean;
+  claimRegistryTxHash?: string;
+  passportTxHash?: string;
+  passportStatus?: PassportStatus;
+  accessSummary?: {
+    canAccessDealRoom: boolean;
+    canAccessInvestorArea: boolean;
+    canInvest: boolean;
+  };
+  error?: string;
 };
