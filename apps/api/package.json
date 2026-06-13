@@ -4,9 +4,9 @@
   "private": true,
   "scripts": {
     "build": "nest build",
-    "start": "nest start",
-    "start:dev": "nest start --watch",
-    "start:debug": "nest start --debug --watch",
+    "start": "ts-node --transpile-only -r tsconfig-paths/register src/main.ts",
+    "start:dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/main.ts",
+    "start:nest": "nest start --watch",
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\"",
     "test": "jest",
@@ -34,6 +34,7 @@
     "@nestjs/cli": "^10.4.5",
     "@nestjs/schematics": "^10.1.4",
     "@nestjs/testing": "^10.4.4",
+    "@swc/core": "^1.15.41",
     "@types/express": "^5.0.0",
     "@types/node": "^22.7.5",
     "@typescript-eslint/eslint-plugin": "^8.8.0",
@@ -43,6 +44,8 @@
     "prisma": "^5.20.0",
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "tsconfig-paths": "^4.2.0",
     "typescript": "^5.6.3"
   },
   "jest": {
