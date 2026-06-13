@@ -61,7 +61,8 @@ db:
 
 migrate:
 	@echo "→ Running Prisma migrations..."
-	@cd apps/api && npx prisma migrate deploy
+	@DB_URL=$$(grep '^DATABASE_URL' apps/api/.env | cut -d= -f2- | tr -d '"'); \
+	 cd apps/api && DATABASE_URL="$$DB_URL" npx prisma migrate deploy
 	@echo "✓ Migrations done"
 
 build-cre:
