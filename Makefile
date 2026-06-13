@@ -1,6 +1,6 @@
 .PHONY: help up down api cre web db migrate ngrok logs \
         test-kyc test-green test-red status stop reset-db \
-        build-cre env-check deploy-testnet
+        build-cre env-check deploy-testnet deploy-local anvil
 
 # ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -11,6 +11,7 @@ API_LOG       := /tmp/passport-api.log
 CRE_LOG       := /tmp/passport-cre.log
 WEB_LOG       := /tmp/passport-web.log
 NGROK_LOG     := /tmp/passport-ngrok.log
+ANVIL_LOG     := /tmp/passport-anvil.log
 
 # ─── Help ─────────────────────────────────────────────────────────────────────
 
@@ -21,6 +22,8 @@ help:
 	@echo "  Setup"
 	@echo "    make env-check     — verify .env files exist"
 	@echo "    make db            — start PostgreSQL (podman)"
+	@echo "    make anvil         — start local EVM node on :8545"
+	@echo "    make deploy-local  — deploy contracts to local Anvil"
 	@echo "    make migrate       — run Prisma migrations"
 	@echo "    make build-cre     — build CRE TypeScript"
 	@echo ""
@@ -56,6 +59,16 @@ env-check:
 	@test -f cre/.env        || (echo "ERROR: cre/.env missing — copy from cre/.env.example" && exit 1)
 	@test -f apps/web/.env.local || (echo "WARNING: apps/web/.env.local missing — copy from apps/web/.env.example"; true)
 	@echo "✓ .env files OK"
+
+anvil:
+	@echo "→ Starting Anvil (local EVM node) on :8545 (log: $(ANVIL_LOG))"
+	@pkill -f "anvil" 2>/dev/null || true
+	@anvil --block-time 2 > $(ANVIL_LOG) 2>&1 &
+	@sleep 2
+	@curl -sf -X POST http://localhost:8545 \
+	  -H "Content-Type: application/json" \
+	  -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' > /dev/null \
+	  && echo "✓ Anvil up on :8545" || echo "✗ Anvil failed — check $(ANVIL_LOG)"
 
 db:
 	@echo "→ Starting PostgreSQL..."
@@ -120,12 +133,16 @@ up: build-cre
 	@echo ""
 	@$(MAKE) db
 	@sleep 2
+	@$(MAKE) anvil
+	@sleep 2
+	@$(MAKE) deploy-local
 	@$(MAKE) api
 	@$(MAKE) cre
 	@$(MAKE) web
 	@echo ""
 	@echo "══════════════════════════════════════════"
 	@echo "  All services started"
+	@echo "  Anvil:    http://localhost:8545"
 	@echo "  API:      http://localhost:3001"
 	@echo "  CRE:      http://localhost:3002"
 	@echo "  Frontend: http://localhost:3000"
@@ -205,10 +222,23 @@ print(f\"  canInvest:        {d['canInvest']}\"); \
 # ─── Logs ─────────────────────────────────────────────────────────────────────
 
 logs:
-	@echo "Tailing API, CRE, and Web logs (Ctrl+C to stop)..."
-	@tail -f $(API_LOG) $(CRE_LOG) $(WEB_LOG) 2>/dev/null || echo "No log files found yet — start services first"
+	@echo "Tailing Anvil, API, CRE, and Web logs (Ctrl+C to stop)..."
+	@tail -f $(ANVIL_LOG) $(API_LOG) $(CRE_LOG) $(WEB_LOG) 2>/dev/null || echo "No log files found yet — start services first"
 
 # ─── Stop / reset ─────────────────────────────────────────────────────────────
+
+deploy-local:
+	@echo "→ Deploying contracts to local Anvil..."
+	@cd contracts && \
+	  DEPLOYER_PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
+	  CRE_UPDATER_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 \
+	  forge script script/DeployPassportCreds.s.sol \
+	    --rpc-url http://localhost:8545 \
+	    --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
+	    --broadcast \
+	  > /tmp/passport-deploy-local.log 2>&1 \
+	  && echo "✓ Contracts deployed locally" \
+	  || (echo "✗ Deploy failed — check /tmp/passport-deploy-local.log" && cat /tmp/passport-deploy-local.log)
 
 stop:
 	@echo "→ Stopping all services..."
@@ -216,6 +246,7 @@ stop:
 	@lsof -ti:3002 | xargs kill -9 2>/dev/null || true
 	@lsof -ti:3000 | xargs kill -9 2>/dev/null || true
 	@pkill -f "ngrok http" 2>/dev/null || true
+	@pkill -f "anvil" 2>/dev/null || true
 	@echo "✓ All services stopped"
 
 down: stop
