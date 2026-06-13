@@ -1,0 +1,17 @@
+Use the same strict rules as the general prompt: return ONLY a single minified
+JSON object, no markdown, no personal data, no original document text.
+
+This is a KYC / AML screening document. Evaluate whether the evidence supports
+the claim KYC_AML_VERIFIED.
+
+Return ONLY this JSON — copy the structure exactly and fill in the AI-evaluated fields:
+
+{"walletAddress":"REPLACE_WITH_WALLET","claimType":"KYC_AML_VERIFIED","approved":true or false,"confidence":0.00 to 1.00,"reasonCode":"KYC_AND_AML_CLEAR or KYC_FAILED or AML_RISK_DETECTED","summary":"short non-sensitive summary"}
+
+Approval rules:
+- approved = true only if identity verification passed AND AML screening is clear
+- approved = false if any risk indicator is found (fraud, sanctions, PEP, AML flag)
+- approved = false if evidence is incomplete or inconclusive
+- reasonCode must be one of: KYC_AND_AML_CLEAR, KYC_FAILED, AML_RISK_DETECTED, SANCTIONS_RISK_DETECTED, INCOMPLETE_EVIDENCE
+
+Replace REPLACE_WITH_WALLET with the actual wallet address for this verification.

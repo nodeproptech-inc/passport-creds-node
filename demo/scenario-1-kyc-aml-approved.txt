@@ -1,0 +1,29 @@
+Synthetic Compliance Record — FOR DEMO USE ONLY
+
+Applicant ID: DEMO-001
+Document Type: KYC / AML Verification Summary
+Jurisdiction: Demo Region
+
+Identity Verification: Passed
+Liveness Check: Passed
+Document Authenticity Check: Passed
+Document Type Verified: National ID (synthetic)
+
+AML Screening: Clear
+Sanctions Screening: No match found
+PEP Screening: No match found
+Adverse Media: No results
+Fraud Risk Assessment: Low
+Watchlist Status: Clear
+
+Review Status: Approved
+Review Date: 2026-06-13
+Review Reference: KYC-DEMO-2026-001
+
+Compliance Officer Note:
+This synthetic applicant successfully completed identity verification and
+AML screening. No sanctions, PEP exposure, adverse media, or fraud risk
+indicators were detected. The evidence supports full KYC/AML clearance.
+
+--- THIS IS A SYNTHETIC DOCUMENT FOR HACKATHON DEMO PURPOSES ONLY ---
+--- IT DOES NOT REPRESENT ANY REAL PERSON OR REAL VERIFICATION ---

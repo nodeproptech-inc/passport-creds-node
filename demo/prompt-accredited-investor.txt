@@ -1,0 +1,16 @@
+Use the same strict rules as the general prompt: return ONLY a single minified
+JSON object, no markdown, no personal data, no original document text.
+
+This is an Accredited Investor verification document. Evaluate whether the
+evidence supports the claim ACCREDITED_INVESTOR.
+
+Return ONLY this JSON — copy the structure exactly and fill in the AI-evaluated fields:
+
+{"walletAddress":"REPLACE_WITH_WALLET","claimType":"ACCREDITED_INVESTOR","approved":true or false,"confidence":0.00 to 1.00,"reasonCode":"ACCREDITATION_CONFIRMED or ACCREDITATION_NOT_CONFIRMED or INCOMPLETE_EVIDENCE","summary":"short non-sensitive summary"}
+
+Approval rules:
+- approved = true only if the evidence clearly confirms accredited investor status
+- approved = false if evidence is incomplete, expired, self-attested only, or contradictory
+- reasonCode must be one of: ACCREDITATION_CONFIRMED, ACCREDITATION_NOT_CONFIRMED, INCOMPLETE_EVIDENCE, EXPIRED_EVIDENCE, INCONCLUSIVE_RESULT
+
+Replace REPLACE_WITH_WALLET with the actual wallet address for this verification.
