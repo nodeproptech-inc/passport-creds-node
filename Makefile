@@ -63,7 +63,7 @@ env-check:
 anvil:
 	@echo "→ Starting Anvil (local EVM node) on :8545 (log: $(ANVIL_LOG))"
 	@pkill -f "anvil" 2>/dev/null || true
-	@anvil --block-time 2 > $(ANVIL_LOG) 2>&1 &
+	@anvil > $(ANVIL_LOG) 2>&1 &
 	@sleep 2
 	@curl -sf -X POST http://localhost:8545 \
 	  -H "Content-Type: application/json" \
@@ -98,7 +98,7 @@ api:
 cre:
 	@echo "→ Starting CRE server on :3002 (log: $(CRE_LOG))"
 	@lsof -ti:3002 | xargs kill -9 2>/dev/null || true
-	@cd cre && node dist/server.js > $(CRE_LOG) 2>&1 &
+	@cd cre && env $$(grep -v '^#' .env | grep '=' | xargs) node dist/server.js > $(CRE_LOG) 2>&1 &
 	@sleep 2
 	@curl -sf $(CRE_URL)/health > /dev/null && echo "✓ CRE up" || echo "✗ CRE failed to start — check $(CRE_LOG)"
 

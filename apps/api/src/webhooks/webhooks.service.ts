@@ -30,15 +30,17 @@ export class WebhooksService {
   async handleAiAttesterWebhook(
     payload: AIAttesterWebhookPayload,
   ): Promise<{ received: boolean; verificationId: string; claimType: string; creTriggered: boolean }> {
-    // Support Chainlink AI Attester native format where the webhook body is just
-    // the AI output JSON (no verificationId/walletAddress wrapper). In that case,
-    // resolve the session by walletAddress + claimType lookup.
+    // Chainlink AI Attester sends results wrapped in an envelope:
+    //   { input: { output: "<json string>", cre_callback: {...}, ... } }
+    // The actual claim fields (claimType, approved, etc.) are in input.output as a JSON string.
+    // Fall back to checking top-level output for older/manual webhook calls.
     let rawPayload = payload;
-    if (typeof (payload as any).output === 'string') {
-      // Chainlink wraps output as a JSON string inside an envelope object
+    const envelope = (payload as any).input ?? payload;
+    const outputField = envelope.output;
+    if (typeof outputField === 'string') {
       try {
-        const parsed = JSON.parse((payload as any).output);
-        rawPayload = { ...parsed, ...(payload as any) };
+        const parsed = JSON.parse(outputField);
+        rawPayload = { ...parsed };
       } catch {
         throw new BadRequestException('Failed to parse Chainlink output field as JSON');
       }
