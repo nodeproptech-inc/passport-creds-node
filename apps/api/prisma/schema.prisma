@@ -1,0 +1,207 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────
+
+enum PassportStatus {
+  NONE
+  IN_PROGRESS
+  LIMITED
+  GREEN
+  RED
+  REVOKED
+  EXPIRED
+}
+
+enum ClaimType {
+  KYC_AML_VERIFIED
+  ACCREDITED_INVESTOR
+}
+
+enum ClaimStatus {
+  UNVERIFIED
+  PENDING
+  PROCESSING
+  VERIFIED
+  FAILED
+  EXPIRED
+  REVOKED
+}
+
+enum VerificationStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum CREStatus {
+  NOT_STARTED
+  TRIGGERED
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum TransactionStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+  SIMULATED
+}
+
+enum ContractName {
+  ClaimRegistry
+  CompliancePassport
+  AccessGate
+}
+
+// ─── Models ───────────────────────────────────────────────
+
+model WalletProfile {
+  id              String         @id @default(cuid())
+  walletAddress   String         @unique
+  tenantId        String         @default("node-proptech")
+  passportStatus  PassportStatus @default(NONE)
+  passportTokenId String?
+  passportTxHash  String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  claims        ComplianceClaim[]
+  verifications VerificationSession[]
+  transactions  TransactionRecord[]
+
+  @@index([walletAddress])
+  @@index([tenantId])
+  @@index([passportStatus])
+}
+
+model ComplianceClaim {
+  id              String      @id @default(cuid())
+  walletAddress   String
+  tenantId        String      @default("node-proptech")
+  claimType       ClaimType
+  status          ClaimStatus @default(UNVERIFIED)
+  approved        Boolean     @default(false)
+  confidence      Float?
+  reasonCode      String?
+  summary         String?
+  attestationId   String?
+  attestationHash String?
+  verificationId  String?
+  transactionHash String?
+  expiresAt       DateTime?
+  verifiedAt      DateTime?
+  failedAt        DateTime?
+  revokedAt       DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  wallet WalletProfile @relation(fields: [walletAddress], references: [walletAddress])
+
+  @@unique([walletAddress, claimType])
+  @@index([walletAddress])
+  @@index([tenantId])
+  @@index([claimType])
+  @@index([status])
+  @@index([verificationId])
+}
+
+model VerificationSession {
+  id              String             @id @default(cuid())
+  walletAddress   String
+  tenantId        String             @default("node-proptech")
+  claimType       ClaimType
+  status          VerificationStatus @default(PENDING)
+  creStatus       CREStatus          @default(NOT_STARTED)
+
+  approved        Boolean?
+  confidence      Float?
+  reasonCode      String?
+  summary         String?
+  attestationId   String?
+  attestationHash String?
+
+  expiresAt         DateTime?
+  webhookReceivedAt DateTime?
+  creTriggeredAt    DateTime?
+  creCompletedAt    DateTime?
+  completedAt       DateTime?
+  failedAt          DateTime?
+
+  transactionHash String?
+  errorMessage    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  wallet        WalletProfile          @relation(fields: [walletAddress], references: [walletAddress])
+  webhookEvents AIAttesterWebhookEvent[]
+
+  @@index([walletAddress])
+  @@index([tenantId])
+  @@index([claimType])
+  @@index([status])
+  @@index([creStatus])
+}
+
+model AIAttesterWebhookEvent {
+  id             String    @id @default(cuid())
+  verificationId String
+  walletAddress  String
+  tenantId       String    @default("node-proptech")
+  claimType      ClaimType
+
+  approved        Boolean
+  confidence      Float?
+  reasonCode      String?
+  summary         String?
+  attestationId   String?
+  attestationHash String?
+
+  sanitizedPayload Json?
+  receivedAt       DateTime @default(now())
+
+  verification VerificationSession @relation(fields: [verificationId], references: [id])
+
+  @@index([verificationId])
+  @@index([walletAddress])
+  @@index([tenantId])
+  @@index([claimType])
+  @@index([receivedAt])
+}
+
+model TransactionRecord {
+  id              String            @id @default(cuid())
+  walletAddress   String
+  tenantId        String            @default("node-proptech")
+  verificationId  String?
+  claimType       ClaimType?
+  contractName    ContractName
+  action          String
+  transactionHash String?
+  status          TransactionStatus @default(PENDING)
+  chainId         Int?
+  blockNumber     Int?
+  errorMessage    String?
+  createdAt       DateTime          @default(now())
+  confirmedAt     DateTime?
+
+  wallet WalletProfile @relation(fields: [walletAddress], references: [walletAddress])
+
+  @@index([walletAddress])
+  @@index([tenantId])
+  @@index([verificationId])
+  @@index([claimType])
+  @@index([contractName])
+  @@index([transactionHash])
+  @@index([status])
+}
