@@ -1,0 +1,19 @@
+{
+  "name": "passportcreds-by-node",
+  "private": true,
+  "workspaces": [
+    "apps/api",
+    "apps/web",
+    "cre"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev --workspace=apps/api",
+    "dev:web": "npm run dev --workspace=apps/web",
+    "dev:cre": "npm run dev --workspace=cre",
+    "build:api": "npm run build --workspace=apps/api",
+    "build:web": "npm run build --workspace=apps/web"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

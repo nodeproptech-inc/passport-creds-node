@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "chainlink-confidential-ai-attester-skill": {
+      "source": "smartcontractkit/chainlink-agent-skills",
+      "sourceType": "github",
+      "skillPath": "chainlink-confidential-ai-attester-skill/SKILL.md",
+      "computedHash": "856e93e327b5a533d539267fd8e9401f3621b7e054c458428863e752b9d49a7a"
+    },
+    "chainlink-cre-skill": {
+      "source": "smartcontractkit/chainlink-agent-skills",
+      "sourceType": "github",
+      "skillPath": "chainlink-cre-skill/SKILL.md",
+      "computedHash": "6a000e09bcd023407c19998d401867943e5c1a1d5c9c7a4a8190572b6269c5be"
+    }
+  }
+}
