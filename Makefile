@@ -1,6 +1,6 @@
 .PHONY: help up down api cre web db migrate ngrok logs \
         test-kyc test-green test-red status stop reset-db \
-        build-cre env-check
+        build-cre env-check deploy-testnet
 
 # ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -44,6 +44,9 @@ help:
 	@echo "    make stop          — kill API, CRE, frontend, ngrok"
 	@echo "    make down          — stop and remove postgres container"
 	@echo "    make reset-db      — wipe DB + re-migrate (DESTROYS DATA)"
+	@echo ""
+	@echo "  Testnet"
+	@echo "    make deploy-testnet — deploy contracts to Base Sepolia"
 	@echo ""
 
 # ─── Setup ────────────────────────────────────────────────────────────────────
@@ -228,3 +231,30 @@ reset-db:
 	@sleep 3
 	@$(MAKE) migrate
 	@echo "✓ Database reset"
+
+# ─── Testnet deploy ───────────────────────────────────────────────────────────
+
+deploy-testnet:
+	@echo ""
+	@echo "══════════════════════════════════════════"
+	@echo "  PassportCreds — Testnet Deploy"
+	@echo "══════════════════════════════════════════"
+	@test -f contracts/.env || (echo "ERROR: contracts/.env missing — fill in DEPLOYER_PRIVATE_KEY, CRE_UPDATER_ADDRESS, RPC_URL" && exit 1)
+	@source contracts/.env && \
+	  [ -n "$$DEPLOYER_PRIVATE_KEY" ] && [ "$$DEPLOYER_PRIVATE_KEY" != "0x" ] || \
+	  (echo "ERROR: DEPLOYER_PRIVATE_KEY not set in contracts/.env" && exit 1)
+	@echo "→ Building contracts..."
+	@cd contracts && forge build
+	@echo "→ Deploying to testnet..."
+	@cd contracts && source .env && forge script script/DeployPassportCreds.s.sol \
+	  --rpc-url $$RPC_URL \
+	  --private-key $$DEPLOYER_PRIVATE_KEY \
+	  --broadcast 2>&1 | tee /tmp/passport-deploy.log
+	@echo ""
+	@echo "✓ Deploy done. Check /tmp/passport-deploy.log for addresses."
+	@echo "  Copy the three contract addresses to:"
+	@echo "    contracts/deployments.json (testnet section)"
+	@echo "    apps/api/.env"
+	@echo "    cre/.env"
+	@echo "    apps/web/.env.local"
+	@echo ""

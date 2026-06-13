@@ -72,9 +72,15 @@ const ACCESS_GATE_ABI = [
 
 // ─── Chain + clients ───────────────────────────────────────
 
+const CHAIN_NAMES: Record<number, string> = {
+  31337: 'Local Anvil',
+  84532: 'Base Sepolia',
+  11155111: 'Sepolia',
+};
+
 const chain = defineChain({
   id: CHAIN_ID,
-  name: 'Local Anvil',
+  name: CHAIN_NAMES[CHAIN_ID] ?? `Chain ${CHAIN_ID}`,
   nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   rpcUrls: { default: { http: [RPC_URL] } },
 });

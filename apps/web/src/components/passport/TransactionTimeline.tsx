@@ -1,6 +1,9 @@
 import type { TransactionItem } from '@/modules/passport/passport.types';
 import { formatTxHash } from '@/lib/format';
 
+const EXPLORER_BASE =
+  process.env.NEXT_PUBLIC_EXPLORER_URL ?? 'https://sepolia.basescan.org';
+
 const CONTRACT_COLORS: Record<string, string> = {
   ClaimRegistry: 'text-[#4A9EFF] bg-[#4A9EFF]/10',
   CompliancePassport: 'text-[#3DDBD9] bg-[#3DDBD9]/10',
@@ -59,9 +62,14 @@ export function TransactionTimeline({ transactions }: Props) {
               </div>
               <p className="text-sm text-white font-medium">{tx.action}</p>
               {tx.transactionHash && (
-                <p className="font-mono text-xs text-[#4A9EFF] mt-1">
-                  {formatTxHash(tx.transactionHash)}
-                </p>
+                <a
+                  href={`${EXPLORER_BASE}/tx/${tx.transactionHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-mono text-xs text-[#4A9EFF] mt-1 hover:underline block"
+                >
+                  {formatTxHash(tx.transactionHash)} ↗
+                </a>
               )}
               <p className="text-[10px] text-[#8FA0C0] mt-1">
                 {new Date(tx.createdAt).toLocaleTimeString()}
