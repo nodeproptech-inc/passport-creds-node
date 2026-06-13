@@ -13,9 +13,22 @@ import {
   startVerification,
   injectMockAiResult,
   syncVerificationOnchain,
+  submitDocument,
 } from '@/modules/passport/passport.service';
 import type { PassportState, ClaimType } from '@/modules/passport/passport.types';
 import { PRODUCT_NAME } from '@/modules/passport/passport.constants';
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      resolve(result.split(',')[1]);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 const POLL_INTERVAL_ACTIVE_MS = 3000;
 const POLL_INTERVAL_IDLE_MS = 5000;
@@ -37,6 +50,7 @@ export default function PassportPage() {
   const [error, setError] = useState<string | null>(null);
   const [startingClaim, setStartingClaim] = useState<ClaimType | null>(null);
   const [simulatingClaim, setSimulatingClaim] = useState<ClaimType | null>(null);
+  const [submittingClaim, setSubmittingClaim] = useState<ClaimType | null>(null);
   const [activeVerificationIds, setActiveVerificationIds] = useState<
     Partial<Record<ClaimType, string>>
   >({});
@@ -119,6 +133,27 @@ export default function PassportPage() {
       setError(`Failed to simulate ${claimType}.`);
     } finally {
       setSimulatingClaim(null);
+    }
+  }
+
+  async function handleSubmitDocument(claimType: ClaimType, file: File) {
+    if (!walletAddress) return;
+    setSubmittingClaim(claimType);
+    try {
+      const documentBase64 = await fileToBase64(file);
+      const result = await submitDocument({
+        walletAddress,
+        claimType,
+        documentBase64,
+        documentName: file.name,
+        documentContentType: file.type || 'text/plain',
+      });
+      setActiveVerificationIds((prev) => ({ ...prev, [claimType]: result.verificationId }));
+      await fetchPassport(walletAddress);
+    } catch {
+      setError(`Failed to submit document for ${claimType}. Check that ngrok is running and NGROK_PUBLIC_URL is set.`);
+    } finally {
+      setSubmittingClaim(null);
     }
   }
 
@@ -213,33 +248,35 @@ export default function PassportPage() {
               <div className="space-y-4">
                 <EvidenceCard
                   title="KYC / AML Evidence"
-                  description="Submit KYC / AML evidence through Chainlink Confidential AI Attester. Once verified, this claim will be written onchain through Chainlink CRE."
+                  description="Upload your KYC / AML document. Chainlink Confidential AI Attester will evaluate it in a TEE and the result will be written onchain through Chainlink CRE."
                   claimType="KYC_AML_VERIFIED"
                   status={kycClaim?.status ?? 'UNVERIFIED'}
                   summary={kycClaim?.summary ?? undefined}
                   confidence={kycClaim?.confidence ?? undefined}
                   transactionHash={kycClaim?.transactionHash ?? undefined}
                   verificationId={activeVerificationIds['KYC_AML_VERIFIED']}
-                  onStartVerification={() => handleStartVerification('KYC_AML_VERIFIED')}
+                  onSubmitDocument={(file) => handleSubmitDocument('KYC_AML_VERIFIED', file)}
                   onSimulate={() => handleSimulate('KYC_AML_VERIFIED')}
                   onSyncOnchain={() => handleSyncOnchain('KYC_AML_VERIFIED')}
                   isStarting={startingClaim === 'KYC_AML_VERIFIED'}
+                  isSubmitting={submittingClaim === 'KYC_AML_VERIFIED'}
                   isSimulating={simulatingClaim === 'KYC_AML_VERIFIED'}
                 />
 
                 <EvidenceCard
                   title="Accredited Investor Evidence"
-                  description="Submit Accredited Investor evidence through Chainlink Confidential AI Attester. Once verified, investor access can be enabled."
+                  description="Upload your Accredited Investor documentation. Chainlink Confidential AI Attester will evaluate it and the claim will be written onchain through Chainlink CRE."
                   claimType="ACCREDITED_INVESTOR"
                   status={accreditedClaim?.status ?? 'UNVERIFIED'}
                   summary={accreditedClaim?.summary ?? undefined}
                   confidence={accreditedClaim?.confidence ?? undefined}
                   transactionHash={accreditedClaim?.transactionHash ?? undefined}
                   verificationId={activeVerificationIds['ACCREDITED_INVESTOR']}
-                  onStartVerification={() => handleStartVerification('ACCREDITED_INVESTOR')}
+                  onSubmitDocument={(file) => handleSubmitDocument('ACCREDITED_INVESTOR', file)}
                   onSimulate={() => handleSimulate('ACCREDITED_INVESTOR')}
                   onSyncOnchain={() => handleSyncOnchain('ACCREDITED_INVESTOR')}
                   isStarting={startingClaim === 'ACCREDITED_INVESTOR'}
+                  isSubmitting={submittingClaim === 'ACCREDITED_INVESTOR'}
                   isSimulating={simulatingClaim === 'ACCREDITED_INVESTOR'}
                 />
 

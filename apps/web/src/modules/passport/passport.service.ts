@@ -36,3 +36,16 @@ export async function injectMockAiResult(
     body: JSON.stringify({ scenario }),
   });
 }
+
+export async function submitDocument(input: {
+  walletAddress: string;
+  claimType: ClaimType;
+  documentBase64: string;
+  documentName: string;
+  documentContentType?: string;
+}): Promise<{ verificationId: string; inferenceId: string; claimType: string; status: string }> {
+  return apiFetch('/verification/submit-document', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}

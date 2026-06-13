@@ -1,5 +1,6 @@
 'use client';
 
+import { useRef, useState } from 'react';
 import type { ClaimType, ClaimStatus } from '@/modules/passport/passport.types';
 import { ClaimStatusBadge } from './ClaimStatusBadge';
 import { formatTxHash } from '@/lib/format';
@@ -13,9 +14,11 @@ type Props = {
   confidence?: number;
   transactionHash?: string;
   onStartVerification?: () => void;
+  onSubmitDocument?: (file: File) => void;
   onSimulate?: () => void;
   onSyncOnchain?: () => void;
   isStarting?: boolean;
+  isSubmitting?: boolean;
   isSimulating?: boolean;
   verificationId?: string;
 };
@@ -27,14 +30,29 @@ export function EvidenceCard({
   summary,
   confidence,
   transactionHash,
-  onStartVerification,
+  onSubmitDocument,
   onSimulate,
   onSyncOnchain,
-  isStarting,
+  isSubmitting,
   isSimulating,
   verificationId,
 }: Props) {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const isActive = status === 'PENDING' || status === 'PROCESSING';
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    setSelectedFile(file);
+  }
+
+  function handleSubmit() {
+    if (selectedFile && onSubmitDocument) {
+      onSubmitDocument(selectedFile);
+      setSelectedFile(null);
+      if (inputRef.current) inputRef.current.value = '';
+    }
+  }
 
   return (
     <div className="bg-white border border-[#DDE1EA] rounded-2xl p-5 shadow-sm">
@@ -71,17 +89,55 @@ export function EvidenceCard({
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2 mt-4">
-        {status === 'UNVERIFIED' && onStartVerification && (
-          <button
-            onClick={onStartVerification}
-            disabled={isStarting}
-            className="text-sm font-semibold px-4 py-2 rounded-lg bg-[#0D1428] text-white hover:bg-[#141E38] transition-colors disabled:opacity-50"
-          >
-            {isStarting ? 'Starting...' : 'Start Verification'}
-          </button>
-        )}
+      {status === 'UNVERIFIED' && onSubmitDocument && (
+        <div className="mt-4 space-y-2">
+          <input
+            ref={inputRef}
+            type="file"
+            accept=".txt,.pdf"
+            onChange={handleFileChange}
+            className="hidden"
+            id={`file-upload-${title}`}
+          />
 
+          {!selectedFile ? (
+            <label
+              htmlFor={`file-upload-${title}`}
+              className="flex items-center gap-2 cursor-pointer text-sm font-semibold px-4 py-2 rounded-lg border-2 border-dashed border-[#DDE1EA] text-[#4B5568] hover:border-[#4A9EFF] hover:text-[#4A9EFF] transition-colors w-full justify-center"
+            >
+              <span>📄</span> Upload Compliance Document
+            </label>
+          ) : (
+            <div className="flex items-center gap-2">
+              <div className="flex-1 bg-[#F8F9FC] border border-[#DDE1EA] rounded-lg px-3 py-2 text-xs text-[#4B5568] truncate">
+                📄 {selectedFile.name}
+              </div>
+              <button
+                onClick={() => {
+                  setSelectedFile(null);
+                  if (inputRef.current) inputRef.current.value = '';
+                }}
+                className="text-xs text-[#9CA3AF] hover:text-red-400 px-1"
+                title="Remove file"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {selectedFile && (
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="w-full text-sm font-semibold px-4 py-2 rounded-lg bg-[#0D1428] text-white hover:bg-[#141E38] transition-colors disabled:opacity-50"
+            >
+              {isSubmitting ? 'Submitting to AI Attester...' : 'Submit for Verification'}
+            </button>
+          )}
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-2 mt-4">
         {isActive && onSyncOnchain && verificationId && (
           <button
             onClick={onSyncOnchain}
@@ -91,16 +147,20 @@ export function EvidenceCard({
           </button>
         )}
 
-        {onSimulate && (status === 'UNVERIFIED' || status === 'PENDING' || status === 'PROCESSING' || status === 'FAILED') && (
-          <button
-            onClick={onSimulate}
-            disabled={isSimulating}
-            className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-dashed border-[#9CA3AF] text-[#9CA3AF] hover:border-[#4A9EFF] hover:text-[#4A9EFF] transition-colors disabled:opacity-50"
-            title="Demo only — bypasses real AI Attester"
-          >
-            {isSimulating ? 'Simulating...' : '⚡ Demo: Simulate Verified'}
-          </button>
-        )}
+        {onSimulate &&
+          (status === 'UNVERIFIED' ||
+            status === 'PENDING' ||
+            status === 'PROCESSING' ||
+            status === 'FAILED') && (
+            <button
+              onClick={onSimulate}
+              disabled={isSimulating}
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-dashed border-[#9CA3AF] text-[#9CA3AF] hover:border-[#4A9EFF] hover:text-[#4A9EFF] transition-colors disabled:opacity-50"
+              title="Demo only — bypasses real AI Attester"
+            >
+              {isSimulating ? 'Simulating...' : '⚡ Demo: Simulate Verified'}
+            </button>
+          )}
       </div>
     </div>
   );
