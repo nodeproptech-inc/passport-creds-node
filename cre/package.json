@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "simulate:cre": "node --experimental-vm-modules dist/run.js",
+    "simulate:cre": "node dist/run.js",
+    "start": "node dist/server.js",
     "build": "tsc",
     "dev": "tsc --watch"
   },

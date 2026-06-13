@@ -10,6 +10,9 @@
     "dev:api": "npm run dev --workspace=apps/api",
     "dev:web": "npm run dev --workspace=apps/web",
     "dev:cre": "npm run dev --workspace=cre",
+    "start:cre": "npm run start --workspace=cre",
+    "simulate:cre": "npm run simulate:cre --workspace=cre",
+    "build:cre": "npm run build --workspace=cre",
     "build:api": "npm run build --workspace=apps/api",
     "build:web": "npm run build --workspace=apps/web"
   },
