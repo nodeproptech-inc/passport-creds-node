@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import type { ClaimType, ClaimStatus } from '@/modules/passport/passport.types';
 import { ClaimStatusBadge } from './ClaimStatusBadge';
 import { formatTxHash } from '@/lib/format';
@@ -40,6 +40,16 @@ export function EvidenceCard({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const isActive = status === 'PENDING' || status === 'PROCESSING';
+  const prevSubmitting = useRef(false);
+
+  // Clear file only after submission finishes (isSubmitting flips false)
+  useEffect(() => {
+    if (prevSubmitting.current && !isSubmitting) {
+      setSelectedFile(null);
+      if (inputRef.current) inputRef.current.value = '';
+    }
+    prevSubmitting.current = !!isSubmitting;
+  }, [isSubmitting]);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
@@ -49,8 +59,7 @@ export function EvidenceCard({
   function handleSubmit() {
     if (selectedFile && onSubmitDocument) {
       onSubmitDocument(selectedFile);
-      setSelectedFile(null);
-      if (inputRef.current) inputRef.current.value = '';
+      // keep selectedFile set — cleared by parent when isSubmitting turns false
     }
   }
 
@@ -125,12 +134,18 @@ export function EvidenceCard({
             </div>
           )}
 
-          {selectedFile && (
+          {(selectedFile || isSubmitting) && (
             <button
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="w-full text-sm font-semibold px-4 py-2 rounded-lg bg-[#0D1428] text-white hover:bg-[#141E38] transition-colors disabled:opacity-50"
+              className="w-full text-sm font-semibold px-4 py-2 rounded-lg bg-[#0D1428] text-white hover:bg-[#141E38] transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
             >
+              {isSubmitting && (
+                <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                </svg>
+              )}
               {isSubmitting ? 'Submitting to AI Attester...' : 'Submit for Verification'}
             </button>
           )}

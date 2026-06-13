@@ -7,6 +7,8 @@ declare global {
     ethereum?: {
       request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
       isMetaMask?: boolean;
+      on: (event: string, handler: (...args: unknown[]) => void) => void;
+      removeListener: (event: string, handler: (...args: unknown[]) => void) => void;
     };
   }
 }
@@ -35,5 +37,15 @@ export const metamaskAdapter: WalletAdapter = {
     } catch {
       return null;
     }
+  },
+
+  onAccountsChanged(callback: (address: string | null) => void): () => void {
+    if (typeof window === 'undefined' || !window.ethereum) return () => {};
+    const handler = (accounts: unknown) => {
+      const list = accounts as string[];
+      callback(list.length > 0 ? list[0] : null);
+    };
+    window.ethereum.on('accountsChanged', handler);
+    return () => window.ethereum?.removeListener('accountsChanged', handler);
   },
 };
