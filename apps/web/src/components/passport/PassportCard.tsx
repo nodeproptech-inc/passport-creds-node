@@ -22,10 +22,10 @@ const STATUS_CONFIG: Record<
     copy: 'Compliance verification is in progress. Please wait.',
   },
   LIMITED: {
-    border: 'border-[#4A9EFF]/30',
-    glow: 'shadow-[#4A9EFF]/10',
+    border: 'border-amber-300',
+    glow: 'shadow-amber-100',
     label: 'Limited',
-    labelColor: 'text-[#4A9EFF]',
+    labelColor: 'text-amber-500',
     copy: 'Compliance Passport issued with limited access. KYC / AML is verified, but Accredited Investor verification is missing.',
   },
   GREEN: {

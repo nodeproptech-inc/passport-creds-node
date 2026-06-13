@@ -17,13 +17,17 @@ import {
 import type { PassportState, ClaimType } from '@/modules/passport/passport.types';
 import { PRODUCT_NAME } from '@/modules/passport/passport.constants';
 
-const POLL_INTERVAL_MS = 3000;
+const POLL_INTERVAL_ACTIVE_MS = 3000;
+const POLL_INTERVAL_IDLE_MS = 5000;
 
 const ACTIVE_STATUSES = new Set(['PENDING', 'PROCESSING']);
 
-function isPollingNeeded(state: PassportState | null): boolean {
+function isActive(state: PassportState | null): boolean {
   if (!state) return false;
-  return state.claims.some((c) => ACTIVE_STATUSES.has(c.status));
+  return (
+    state.status === 'IN_PROGRESS' ||
+    state.claims.some((c) => ACTIVE_STATUSES.has(c.status))
+  );
 }
 
 export default function PassportPage() {
@@ -60,19 +64,22 @@ export default function PassportPage() {
     [fetchPassport]
   );
 
-  // Polling while claims are PENDING / PROCESSING
+  // Always poll while wallet is connected — faster when something is active
   useEffect(() => {
-    if (!walletAddress || !isPollingNeeded(passport)) {
+    if (!walletAddress) {
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
         pollingRef.current = null;
       }
       return;
     }
-    if (pollingRef.current) return;
+    const interval = isActive(passport) ? POLL_INTERVAL_ACTIVE_MS : POLL_INTERVAL_IDLE_MS;
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+    }
     pollingRef.current = setInterval(() => {
       fetchPassport(walletAddress);
-    }, POLL_INTERVAL_MS);
+    }, interval);
     return () => {
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
