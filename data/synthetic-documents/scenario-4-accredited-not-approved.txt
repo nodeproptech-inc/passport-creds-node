@@ -1,0 +1,14 @@
+Synthetic Accredited Investor Verification Record
+
+Applicant ID: DEMO-004
+Document Type: Accredited Investor Verification Summary
+Verification Basis: Self-attestation only
+Income Threshold Review: Not confirmed
+Net Worth Review: Not confirmed
+Professional Certification Review: Not provided
+Supporting Evidence Status: Incomplete
+Reviewer Decision: Not Approved
+Review Date: 2026-06-13
+
+Compliance Officer Note:
+This synthetic applicant does not have sufficient evidence to confirm accredited investor status. The record is based only on self-attestation and lacks supporting documentation.

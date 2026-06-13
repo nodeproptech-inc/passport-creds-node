@@ -1,0 +1,16 @@
+Synthetic Compliance Record
+
+Applicant ID: DEMO-002
+Document Type: KYC / AML Verification Summary
+Identity Verification: Failed
+Liveness Check: Inconclusive
+Document Authenticity Check: Failed
+AML Screening: Review Required
+Sanctions Screening: Potential match
+PEP Screening: No match
+Fraud Risk: High
+Review Status: Rejected
+Review Date: 2026-06-13
+
+Compliance Officer Note:
+This synthetic applicant did not pass identity verification. The AML screening requires review due to a potential sanctions match and high fraud risk.

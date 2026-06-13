@@ -1,0 +1,16 @@
+Synthetic Compliance Record
+
+Applicant ID: DEMO-001
+Document Type: KYC / AML Verification Summary
+Identity Verification: Passed
+Liveness Check: Passed
+Document Authenticity Check: Passed
+AML Screening: Clear
+Sanctions Screening: No match
+PEP Screening: No match
+Fraud Risk: Low
+Review Status: Approved
+Review Date: 2026-06-13
+
+Compliance Officer Note:
+This synthetic applicant passed identity verification and AML screening. No sanctions, PEP, or fraud risk indicators were found.

@@ -1,0 +1,14 @@
+Synthetic Accredited Investor Verification Record
+
+Applicant ID: DEMO-003
+Document Type: Accredited Investor Verification Summary
+Verification Basis: Income and professional verification
+Income Threshold Review: Passed
+Net Worth Review: Not required
+Professional Certification Review: Valid
+Supporting Evidence Status: Complete
+Reviewer Decision: Approved
+Review Date: 2026-06-13
+
+Compliance Officer Note:
+This synthetic applicant meets the accredited investor criteria based on the provided income and professional verification evidence. The supporting evidence is complete and current.
