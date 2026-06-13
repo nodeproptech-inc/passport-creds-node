@@ -5,7 +5,6 @@ import {Test} from "forge-std/Test.sol";
 import {ClaimRegistry} from "../src/ClaimRegistry.sol";
 import {CompliancePassport} from "../src/CompliancePassport.sol";
 import {ICompliancePassport} from "../src/interfaces/ICompliancePassport.sol";
-import {IClaimRegistry} from "../src/interfaces/IClaimRegistry.sol";
 
 contract CompliancePassportTest is Test {
     ClaimRegistry registry;
