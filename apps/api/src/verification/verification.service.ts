@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException, Inject } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CREService } from '../cre/cre.service';
+import { AttesterService } from '../attester/attester.service';
 import {
   normalizeAddress,
   buildAttestationHash,
@@ -47,6 +48,7 @@ export class VerificationService {
     private readonly prisma: PrismaService,
     private readonly transactions: TransactionsService,
     private readonly cre: CREService,
+    private readonly attester: AttesterService,
     @Inject('CONTRACT_ADAPTER') private readonly contracts: IContractAdapter,
   ) {}
 
@@ -92,6 +94,65 @@ export class VerificationService {
     });
 
     return { verificationId: session.id, walletAddress, claimType, status: 'PENDING' };
+  }
+
+  // Accepts a document from the frontend, submits it to the Chainlink Confidential AI Attester,
+  // and stores the inferenceId. The result arrives asynchronously via /webhooks/ai-attester.
+  async startWithDocument(
+    rawAddress: string,
+    claimType: string,
+    documentBase64: string,
+    documentName: string,
+    documentContentType?: string,
+  ): Promise<{ verificationId: string; inferenceId: string; claimType: string; status: string }> {
+    if (!SUPPORTED_CLAIM_TYPES.has(claimType)) {
+      throw new BadRequestException(`Unsupported claimType: ${claimType}`);
+    }
+
+    const walletAddress = normalizeAddress(rawAddress);
+
+    await this.prisma.walletProfile.upsert({
+      where: { walletAddress },
+      create: { walletAddress, tenantId: TENANT_ID, passportStatus: 'IN_PROGRESS' },
+      update: { passportStatus: 'IN_PROGRESS' },
+    });
+
+    const session = await this.prisma.verificationSession.create({
+      data: {
+        walletAddress,
+        tenantId: TENANT_ID,
+        claimType: claimType as any,
+        status: 'PENDING',
+        creStatus: 'NOT_STARTED',
+      },
+    });
+
+    await this.prisma.complianceClaim.upsert({
+      where: { walletAddress_claimType: { walletAddress, claimType: claimType as any } },
+      create: {
+        walletAddress,
+        tenantId: TENANT_ID,
+        claimType: claimType as any,
+        status: 'PENDING',
+        verificationId: session.id,
+      },
+      update: { status: 'PENDING', verificationId: session.id },
+    });
+
+    const inferenceId = await this.attester.submitInference({
+      walletAddress,
+      claimType,
+      documentBase64,
+      documentName,
+      documentContentType,
+    });
+
+    await this.prisma.verificationSession.update({
+      where: { id: session.id },
+      data: { inferenceId },
+    });
+
+    return { verificationId: session.id, inferenceId, claimType, status: 'queued' };
   }
 
   // Demo fallback: injects a saved sample AI result when AI Attester Playground is unavailable.

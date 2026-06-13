@@ -10,6 +10,27 @@ export class VerificationController {
     return this.verification.startVerification(body.walletAddress, body.claimType);
   }
 
+  @Post('submit-document')
+  @HttpCode(HttpStatus.OK)
+  async submitDocument(
+    @Body()
+    body: {
+      walletAddress: string;
+      claimType: string;
+      documentBase64: string;
+      documentName: string;
+      documentContentType?: string;
+    },
+  ) {
+    return this.verification.startWithDocument(
+      body.walletAddress,
+      body.claimType,
+      body.documentBase64,
+      body.documentName,
+      body.documentContentType,
+    );
+  }
+
   // Demo fallback: injects a saved sample AI result without going through the AI Attester.
   // Used when AI Attester Playground is unavailable during the demo.
   @Post(':verificationId/mock-ai-result')

@@ -136,6 +136,7 @@ model VerificationSession {
   completedAt       DateTime?
   failedAt          DateTime?
 
+  inferenceId     String?            // Chainlink AI Attester inference run ID
   transactionHash String?
   errorMessage    String?
 
