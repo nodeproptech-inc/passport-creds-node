@@ -13,6 +13,7 @@ type Props = {
   summary?: string;
   confidence?: number;
   transactionHash?: string;
+  sampleUrl?: string;
   onStartVerification?: () => void;
   onSubmitDocument?: (file: File) => void;
   onSimulate?: () => void;
@@ -30,6 +31,7 @@ export function EvidenceCard({
   summary,
   confidence,
   transactionHash,
+  sampleUrl,
   onSubmitDocument,
   onSimulate,
   onSyncOnchain,
@@ -75,7 +77,17 @@ export function EvidenceCard({
         <ClaimStatusBadge status={status} />
       </div>
 
-      <p className="text-sm text-[#4B5568] mb-4">{description}</p>
+      <p className="text-sm text-[#4B5568] mb-3">{description}</p>
+
+      {sampleUrl && status === 'UNVERIFIED' && (
+        <a
+          href={sampleUrl}
+          download
+          className="inline-flex items-center gap-1.5 text-xs text-[#4A9EFF] hover:underline mb-4"
+        >
+          <span>↓</span> Download sample document
+        </a>
+      )}
 
       {summary && (
         <div className="bg-[#F8F9FC] border border-[#DDE1EA] rounded-xl p-3 mb-3">

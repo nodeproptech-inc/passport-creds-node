@@ -1,0 +1,25 @@
+Synthetic Accredited Investor Verification Record — FOR DEMO USE ONLY
+
+Applicant ID: DEMO-003
+Document Type: Accredited Investor Verification Summary
+Jurisdiction: Demo Region
+
+Verification Basis: Income and professional certification
+Income Threshold Review: Passed (exceeds threshold)
+Net Worth Review: Passed (exceeds threshold)
+Professional Certification Review: Valid (CFA designation confirmed)
+Supporting Evidence Status: Complete and current
+Evidence Expiry: 2027-06-13
+
+Reviewer Decision: Approved
+Review Date: 2026-06-13
+Review Reference: ACC-DEMO-2026-003
+
+Compliance Officer Note:
+This synthetic applicant meets the accredited investor criteria based on
+verified income, net worth, and professional certification evidence.
+All supporting documentation is complete and within validity period.
+The evidence clearly supports accredited investor status.
+
+--- THIS IS A SYNTHETIC DOCUMENT FOR HACKATHON DEMO PURPOSES ONLY ---
+--- IT DOES NOT REPRESENT ANY REAL PERSON OR REAL VERIFICATION ---

@@ -304,6 +304,7 @@ export default function PassportPage() {
                   summary={kycClaim?.summary ?? undefined}
                   confidence={kycClaim?.confidence ?? undefined}
                   transactionHash={kycClaim?.transactionHash ?? undefined}
+                  sampleUrl="/samples/kyc-aml-sample.txt"
                   verificationId={activeVerificationIds['KYC_AML_VERIFIED']}
                   onSubmitDocument={(file) => handleSubmitDocument('KYC_AML_VERIFIED', file)}
                   onSimulate={() => handleSimulate('KYC_AML_VERIFIED')}
@@ -321,6 +322,7 @@ export default function PassportPage() {
                   summary={accreditedClaim?.summary ?? undefined}
                   confidence={accreditedClaim?.confidence ?? undefined}
                   transactionHash={accreditedClaim?.transactionHash ?? undefined}
+                  sampleUrl="/samples/accredited-investor-sample.txt"
                   verificationId={activeVerificationIds['ACCREDITED_INVESTOR']}
                   onSubmitDocument={(file) => handleSubmitDocument('ACCREDITED_INVESTOR', file)}
                   onSimulate={() => handleSimulate('ACCREDITED_INVESTOR')}
