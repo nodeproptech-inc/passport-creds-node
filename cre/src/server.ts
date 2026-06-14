@@ -1,7 +1,7 @@
 import http from 'node:http';
 import { runPassportCredsWorkflow } from './main.js';
 
-const PORT = Number(process.env['CRE_PORT'] ?? '3002');
+const PORT = Number(process.env['PORT'] ?? process.env['CRE_PORT'] ?? '3002');
 
 const server = http.createServer((req, res) => {
   if (req.method === 'POST' && req.url === '/trigger') {
