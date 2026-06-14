@@ -1,4 +1,5 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 const NO_KYC_DAILY_50 = 'NO_KYC_DAILY_50';
@@ -13,11 +14,19 @@ export class WalletPolicyService {
   constructor(private readonly prisma: PrismaService) {}
 
   async ensurePolicy(walletAddress: string): Promise<void> {
-    await this.prisma.walletTransferPolicy.upsert({
-      where: { walletAddress },
-      create: { walletAddress, policyStatus: NO_KYC_DAILY_50, dailyLimitUsd: NO_KYC_CAP },
-      update: {},
-    });
+    try {
+      await this.prisma.walletTransferPolicy.upsert({
+        where: { walletAddress },
+        create: { walletAddress, policyStatus: NO_KYC_DAILY_50, dailyLimitUsd: NO_KYC_CAP },
+        update: {},
+      });
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        // Concurrent create — record already exists, safe to ignore
+        return;
+      }
+      throw err;
+    }
   }
 
   async getPolicy(walletAddress: string) {

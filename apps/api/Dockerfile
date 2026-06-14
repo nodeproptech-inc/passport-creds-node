@@ -16,6 +16,7 @@ RUN cd apps/api && npx prisma generate
 
 # Copy source and build
 COPY apps/api ./apps/api
+COPY demo ./demo
 RUN cd apps/api && npx tsc -p tsconfig.build.json --noCheck
 
 # ── Runtime ──────────────────────────────────────────────────
@@ -26,6 +27,7 @@ WORKDIR /app
 COPY --from=builder /repo/node_modules ./node_modules
 COPY --from=builder /repo/apps/api/dist ./dist
 COPY --from=builder /repo/apps/api/prisma ./prisma
+COPY --from=builder /repo/demo /demo
 COPY --from=builder /repo/apps/api/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /repo/apps/api/package.json ./package.json
 
