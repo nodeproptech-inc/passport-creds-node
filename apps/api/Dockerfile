@@ -26,6 +26,7 @@ WORKDIR /app
 COPY --from=builder /repo/node_modules ./node_modules
 COPY --from=builder /repo/apps/api/dist ./dist
 COPY --from=builder /repo/apps/api/prisma ./prisma
+COPY --from=builder /repo/apps/api/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /repo/apps/api/package.json ./package.json
 
 EXPOSE 3001
