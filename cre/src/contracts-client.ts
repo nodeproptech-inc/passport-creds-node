@@ -165,6 +165,7 @@ export async function syncPassport(walletAddress: `0x${string}`): Promise<{
     abi: COMPLIANCE_PASSPORT_ABI,
     functionName: 'syncPassport',
     args: [walletAddress],
+    gas: 400_000n,
   });
 
   await publicClient.waitForTransactionReceipt({ hash });

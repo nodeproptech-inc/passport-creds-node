@@ -1,4 +1,4 @@
-.PHONY: help up down api cre web db migrate ngrok logs \
+.PHONY: help up up-testnet down api cre web db migrate ngrok logs \
         test-kyc test-green test-red status stop reset-db \
         build-cre env-check deploy-testnet deploy-local anvil
 
@@ -32,7 +32,8 @@ help:
 	@echo "    make cre           — start CRE server on :3002"
 	@echo "    make web           — start Next.js frontend on :3000"
 	@echo "    make ngrok         — expose :3001 via ngrok (set NGROK_URL after)"
-	@echo "    make up            — start db + api + cre + web (background)"
+	@echo "    make up            — start db + anvil + api + cre + web (local)"
+	@echo "    make up-testnet    — start db + api + cre + web (Base Sepolia)"
 	@echo ""
 	@echo "  Test flows (WALLET=0x... make test-kyc)"
 	@echo "    make test-kyc      — KYC approved → passport = LIMITED"
@@ -128,7 +129,7 @@ ngrok:
 up: build-cre
 	@echo ""
 	@echo "══════════════════════════════════════════"
-	@echo "  PassportCreds by Node — starting up"
+	@echo "  PassportCreds by Node — starting up (local)"
 	@echo "══════════════════════════════════════════"
 	@echo ""
 	@$(MAKE) db
@@ -143,6 +144,30 @@ up: build-cre
 	@echo "══════════════════════════════════════════"
 	@echo "  All services started"
 	@echo "  Anvil:    http://localhost:8545"
+	@echo "  API:      http://localhost:3001"
+	@echo "  CRE:      http://localhost:3002"
+	@echo "  Frontend: http://localhost:3000"
+	@echo ""
+	@echo "  Run: make ngrok   to expose webhook"
+	@echo "  Run: make logs    to tail all logs"
+	@echo "══════════════════════════════════════════"
+	@echo ""
+
+up-testnet: build-cre
+	@echo ""
+	@echo "══════════════════════════════════════════"
+	@echo "  PassportCreds by Node — starting up (Base Sepolia)"
+	@echo "══════════════════════════════════════════"
+	@echo ""
+	@$(MAKE) db
+	@sleep 2
+	@$(MAKE) api
+	@$(MAKE) cre
+	@$(MAKE) web
+	@echo ""
+	@echo "══════════════════════════════════════════"
+	@echo "  All services started (testnet mode)"
+	@echo "  Network:  Base Sepolia (chain 84532)"
 	@echo "  API:      http://localhost:3001"
 	@echo "  CRE:      http://localhost:3002"
 	@echo "  Frontend: http://localhost:3000"
@@ -255,9 +280,10 @@ down: stop
 	@echo "✓ PostgreSQL stopped"
 
 reset-db:
-	@echo "WARNING: This will wipe all data in the database."
+	@echo "WARNING: This will wipe all data in the database (including volumes)."
 	@read -p "Are you sure? [y/N] " confirm && [ "$$confirm" = "y" ]
-	@$(MAKE) down
+	@$(MAKE) stop
+	@podman compose down -v
 	@$(MAKE) db
 	@sleep 3
 	@$(MAKE) migrate
