@@ -29,6 +29,7 @@ export class WebhooksService {
 
   async handleAiAttesterWebhook(
     payload: AIAttesterWebhookPayload,
+    verificationIdFromUrl?: string,
   ): Promise<{ received: boolean; verificationId: string; claimType: string; creTriggered: boolean }> {
     // Chainlink AI Attester sends results wrapped in an envelope:
     //   { input: { output: "<json string>", cre_callback: {...}, ... } }
@@ -65,16 +66,18 @@ export class WebhooksService {
 
     let session: { id: string; walletAddress: string; claimType: string } | null = null;
 
-    if (rawPayload.verificationId) {
-      // Standard path — verificationId provided directly
+    // Priority 1: verificationId bound into the callback URL — exact, no ambiguity
+    const resolvedVerificationId = verificationIdFromUrl ?? rawPayload.verificationId;
+
+    if (resolvedVerificationId) {
       session = await this.prisma.verificationSession.findUnique({
-        where: { id: rawPayload.verificationId },
+        where: { id: resolvedVerificationId },
       });
-      if (!session) throw new NotFoundException(`Verification session not found: ${rawPayload.verificationId}`);
+      if (!session) throw new NotFoundException(`Verification session not found: ${resolvedVerificationId}`);
     } else if (rawPayload.walletAddress) {
-      // Chainlink path — no verificationId, resolve by walletAddress + claimType
+      // Fallback: resolve by walletAddress + claimType + PENDING (fragile — only used if callback URL had no verificationId)
       this.logger.warn(
-        `No verificationId in webhook — resolving by walletAddress + claimType (Chainlink format)`,
+        `No verificationId in callback URL or payload — falling back to walletAddress + claimType lookup`,
       );
       session = await this.prisma.verificationSession.findFirst({
         where: {
@@ -91,7 +94,7 @@ export class WebhooksService {
       }
     } else {
       throw new BadRequestException(
-        'Missing verificationId or walletAddress — cannot resolve verification session',
+        'Missing verificationId and walletAddress — cannot resolve verification session',
       );
     }
 

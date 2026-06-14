@@ -20,6 +20,7 @@ export class AttesterService {
   }
 
   async submitInference(params: {
+    verificationId: string;
     walletAddress: string;
     claimType: string;
     documentBase64: string;
@@ -46,7 +47,7 @@ export class AttesterService {
 
     const promptTemplate = this.readPrompt(claimType);
     const prompt = promptTemplate.replace('REPLACE_WITH_WALLET', walletAddress);
-    const callbackUrl = `${this.ngrokUrl}/webhooks/ai-attester`;
+    const callbackUrl = `${this.ngrokUrl}/webhooks/ai-attester?verificationId=${params.verificationId}`;
 
     const body = {
       model: 'gemma4',

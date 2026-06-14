@@ -140,6 +140,7 @@ export class VerificationService {
     });
 
     const inferenceId = await this.attester.submitInference({
+      verificationId: session.id,
       walletAddress,
       claimType,
       documentBase64,
