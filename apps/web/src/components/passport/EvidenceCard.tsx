@@ -40,6 +40,7 @@ export function EvidenceCard({
   verificationId,
 }: Props) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [downloadedSample, setDownloadedSample] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const isActive = status === 'PENDING' || status === 'PROCESSING';
   const prevSubmitting = useRef(false);
@@ -83,9 +84,10 @@ export function EvidenceCard({
         <a
           href={sampleUrl}
           download
-          className="inline-flex items-center gap-1.5 text-xs text-[#4A9EFF] hover:underline mb-4"
+          onClick={() => setDownloadedSample(true)}
+          className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg bg-[#EEF4FF] text-[#1A6FD4] border border-[#C7DEFF] hover:bg-[#DDEEFF] transition-colors mb-4"
         >
-          <span>↓</span> Download sample document
+          <span className="text-base">↓</span> Download Sample Document
         </a>
       )}
 
@@ -119,12 +121,18 @@ export function EvidenceCard({
             onChange={handleFileChange}
             className="hidden"
             id={`file-upload-${title}`}
+            disabled={sampleUrl ? !downloadedSample : false}
           />
 
           {!selectedFile ? (
             <label
-              htmlFor={`file-upload-${title}`}
-              className="flex items-center gap-2 cursor-pointer text-sm font-semibold px-4 py-2 rounded-lg border-2 border-dashed border-[#DDE1EA] text-[#4B5568] hover:border-[#4A9EFF] hover:text-[#4A9EFF] transition-colors w-full justify-center"
+              htmlFor={sampleUrl && !downloadedSample ? undefined : `file-upload-${title}`}
+              className={`flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg border-2 border-dashed w-full justify-center transition-colors ${
+                sampleUrl && !downloadedSample
+                  ? 'border-[#DDE1EA] text-[#C0C8D8] cursor-not-allowed'
+                  : 'cursor-pointer border-[#DDE1EA] text-[#4B5568] hover:border-[#4A9EFF] hover:text-[#4A9EFF]'
+              }`}
+              title={sampleUrl && !downloadedSample ? 'Download the sample document first' : undefined}
             >
               <span>📄</span> Upload Compliance Document
             </label>

@@ -25,7 +25,7 @@ const FEATURES = [
 ];
 
 const STEPS = [
-  { step: '01', label: 'Connect MetaMask', color: 'text-[#4A9EFF]' },
+  { step: '01', label: 'Connect with Privy Embedded Wallet', color: 'text-[#4A9EFF]' },
   { step: '02', label: 'Submit KYC / AML Evidence', color: 'text-[#4A9EFF]' },
   { step: '03', label: 'AI Attester Processes Evidence', color: 'text-[#3DDBD9]' },
   { step: '04', label: 'Chainlink CRE Updates Claims', color: 'text-[#3DDBD9]' },
@@ -43,7 +43,10 @@ export default function LandingPage() {
             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#4A9EFF] to-[#3DDBD9] flex items-center justify-center">
               <span className="text-white text-xs font-bold">PC</span>
             </div>
-            <span className="font-bold text-[#0D1428] text-sm">{PRODUCT_NAME}</span>
+            <div>
+              <span className="font-bold text-[#0D1428] text-sm">{PRODUCT_NAME}</span>
+              <span className="hidden sm:inline text-xs text-[#9CA3AF] ml-2">powered by Node · Chainlink · Privy</span>
+            </div>
           </div>
           <Link
             href="/passport"
@@ -68,10 +71,21 @@ export default function LandingPage() {
         <p className="text-xl text-[#4B5568] mb-3 max-w-2xl mx-auto">
           White-label Compliance Passport for regulated access.
         </p>
-        <p className="text-base text-[#9CA3AF] mb-10 max-w-xl mx-auto">
+        <p className="text-base text-[#9CA3AF] mb-6 max-w-xl mx-auto">
           Turn private compliance evidence into verified onchain claims.
           Unlock regulated access without exposing sensitive documents.
         </p>
+        <div className="flex flex-wrap items-center justify-center gap-3 mb-10">
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-[#EEF4FF] text-[#4A9EFF] border border-[#C7DEFF]">
+            🔗 Chainlink Confidential AI + CRE
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-[#F3EEFF] text-[#7C3AED] border border-[#DDD5FF]">
+            🔑 Privy Embedded Wallet
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-[#EDFDF8] text-[#059669] border border-[#A7F3D0]">
+            ⛓️ Base Sepolia
+          </span>
+        </div>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
             href="/passport"
