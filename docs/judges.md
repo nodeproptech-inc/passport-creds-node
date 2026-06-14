@@ -1,5 +1,27 @@
 # Judges — PassportCreds by Node
 
+## How to Test
+
+**No local setup needed.**
+
+1. Open https://passport-creds-node-web.vercel.app/
+2. Connect with Privy Embedded Wallet (email or social — no browser extension needed)
+3. On the Passport page, click **Download Sample Document** — the upload is gated until you download
+4. Upload the file and click **Submit for Verification**
+5. The Chainlink Confidential AI Attester evaluates the document and delivers the verdict via Railway webhook
+6. If the live Attester is unavailable, use **⚡ Demo: Simulate Verified** — runs the full backend → CRE → onchain pipeline with a saved sample result
+7. Repeat for Accredited Investor to reach passport **GREEN** and unlock the Deal Room
+
+### Prompts and sample documents
+
+The Attester is driven by structured system prompts in `demo/`:
+- `demo/prompt-kyc-aml.txt` — instructs Gemma4 to evaluate KYC/AML evidence, return minified JSON verdict
+- `demo/prompt-accredited-investor.txt` — same for Accredited Investor evidence
+
+Sample documents (`apps/web/public/samples/`) are synthetic. The point is the pipeline, not document realism.
+
+---
+
 ## Live Demo
 
 **Frontend:** https://passport-creds-node-web.vercel.app/

@@ -255,6 +255,33 @@ docs/        — Architecture, AI usage, judges notes
 
 ---
 
+## How to Test the Demo
+
+**No local setup needed — everything runs on Railway and Vercel.**
+
+1. Open https://passport-creds-node-web.vercel.app/
+2. Connect with Privy Embedded Wallet (email or social login — no browser extension needed)
+3. On the Passport page, click **Download Sample Document** before uploading — the app requires it
+4. Upload the downloaded file and click **Submit for Verification**
+5. The Chainlink Confidential AI Attester evaluates the document and delivers the result via webhook
+6. If the live Attester is unavailable, click **⚡ Demo: Simulate Verified** to run the full pipeline with a saved sample result
+7. Repeat for the Accredited Investor claim to reach passport status **GREEN** and unlock the Deal Room
+
+### About the prompts and sample documents
+
+The AI Attester is instructed via structured system prompts located in `demo/`:
+
+| File | Purpose |
+|---|---|
+| `demo/prompt-kyc-aml.txt` | Instructs Gemma4 to evaluate KYC/AML evidence and return structured JSON |
+| `demo/prompt-accredited-investor.txt` | Instructs Gemma4 to evaluate Accredited Investor evidence and return structured JSON |
+
+The prompts ask the model to return a minified JSON verdict only — `claimType`, `approved`, `confidence`, `reasonCode`, `summary`. No prose, no explanation. This keeps the output deterministic and parseable by the backend.
+
+The sample documents available for download in the app (`public/samples/`) are intentionally simple synthetic files. The goal is not to test document quality — it is to demonstrate the full pipeline: document → TEE evaluation → webhook → CRE → onchain claim → passport → access decision.
+
+---
+
 ## Quick Start (local)
 
 ```bash
