@@ -6,9 +6,12 @@
     "AccessGate": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
   },
   "testnet": {
-    "chainId": null,
-    "ClaimRegistry": null,
-    "CompliancePassport": null,
-    "AccessGate": null
+    "network": "base-sepolia",
+    "chainId": 84532,
+    "deployedAt": "2026-06-14",
+    "deployer": "0xa24aB792977703bE7A861B027214d5E70FA31CA9",
+    "ClaimRegistry": "0xE33f1BD4c360A035a9F62043A54BA9812f36d634",
+    "CompliancePassport": "0x9EFd338b9E43577264665348Bd39548f5b044627",
+    "AccessGate": "0xD23c3e140d8FA5d81D1f9966A3093Dc38443cDF6"
   }
 }
