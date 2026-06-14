@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
   webpack: (config) => {
     // @privy-io/react-auth v3 bundles optional integrations (fiat on-ramp, Farcaster,
     // Solana, etc.) that pull in peer deps we don't install. Stub them all out.
