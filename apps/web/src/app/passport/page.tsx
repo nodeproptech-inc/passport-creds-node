@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { PrivyLoginButton } from '@/components/wallet/PrivyLoginButton';
 import { ConnectWalletButton } from '@/components/wallet/ConnectWalletButton';
 import { ComplianceProgressStepper } from '@/components/passport/ComplianceProgressStepper';
@@ -46,6 +47,7 @@ function isActive(state: PassportState | null): boolean {
 }
 
 export default function PassportPage() {
+  const router = useRouter();
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [walletProvider, setWalletProvider] = useState<'privy' | 'metamask'>('privy');
   const [passport, setPassport] = useState<PassportState | null>(null);
@@ -90,12 +92,23 @@ export default function PassportPage() {
     [fetchPassport, fetchPolicy],
   );
 
+  // Stable callbacks for each provider — avoids re-creating inline arrows in JSX
+  const handlePrivyWalletReady = useCallback(
+    (addr: string) => handleWalletReady(addr, 'privy'),
+    [handleWalletReady],
+  );
+  const handleMetaMaskWalletReady = useCallback(
+    (addr: string) => handleWalletReady(addr, 'metamask'),
+    [handleWalletReady],
+  );
+
   function handleDisconnect() {
     setWalletAddress(null);
     setPassport(null);
     setWalletPolicy(null);
     setError(null);
     setActiveVerificationIds({});
+    router.push('/');
   }
 
   useEffect(() => {
@@ -197,18 +210,17 @@ export default function PassportPage() {
             <span className="font-bold text-[#0D1428] text-sm">{PRODUCT_NAME}</span>
           </Link>
           <div className="flex items-center gap-2">
-            {HAS_PRIVY && (
+            {HAS_PRIVY ? (
               <PrivyLoginButton
-                onWalletReady={(addr) => handleWalletReady(addr, 'privy')}
+                onWalletReady={handlePrivyWalletReady}
                 onDisconnect={handleDisconnect}
                 address={walletProvider === 'privy' ? walletAddress : null}
               />
-            )}
-            {(!HAS_PRIVY || walletProvider === 'metamask') && (
+            ) : (
               <ConnectWalletButton
-                onConnect={(addr) => handleWalletReady(addr, 'metamask')}
+                onConnect={handleMetaMaskWalletReady}
                 onDisconnect={handleDisconnect}
-                address={walletProvider === 'metamask' ? walletAddress : null}
+                address={walletAddress}
               />
             )}
           </div>
@@ -242,23 +254,16 @@ export default function PassportPage() {
                 : 'Connect MetaMask to view your Compliance Passport.'}
             </p>
             <div className="flex justify-center gap-3 flex-wrap">
-              {HAS_PRIVY && (
+              {HAS_PRIVY ? (
                 <PrivyLoginButton
-                  onWalletReady={(addr) => handleWalletReady(addr, 'privy')}
+                  onWalletReady={handlePrivyWalletReady}
                   onDisconnect={handleDisconnect}
                   address={null}
                 />
+              ) : (
+                <ConnectWalletButton onConnect={handleMetaMaskWalletReady} address={null} />
               )}
-              <ConnectWalletButton
-                onConnect={(addr) => handleWalletReady(addr, 'metamask')}
-                address={null}
-              />
             </div>
-            {HAS_PRIVY && (
-              <p className="text-[10px] text-[#9CA3AF] mt-4">
-                MetaMask also available for advanced users.
-              </p>
-            )}
           </div>
         )}
 
@@ -340,14 +345,6 @@ export default function PassportPage() {
                   passportTxHash={passport.passportTxHash}
                   badges={passport.badges}
                   walletAddress={walletAddress}
-                />
-
-                <PassportCard
-                  walletAddress={walletAddress}
-                  status={passport.status}
-                  badges={passport.badges}
-                  passportTokenId={passport.passportTokenId}
-                  passportTxHash={passport.passportTxHash}
                 />
               </div>
 

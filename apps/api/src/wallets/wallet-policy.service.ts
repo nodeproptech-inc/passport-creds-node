@@ -21,18 +21,28 @@ export class WalletPolicyService {
   }
 
   async getPolicy(walletAddress: string) {
-    const policy = await this.prisma.walletTransferPolicy.findUnique({
-      where: { walletAddress },
-    });
-    if (!policy) {
-      await this.ensurePolicy(walletAddress);
-      return { policyStatus: NO_KYC_DAILY_50, dailyLimitUsd: NO_KYC_CAP, limitToken: 'USDC', canModifyLimit: false };
+    await this.ensurePolicy(walletAddress);
+    let policy = await this.prisma.walletTransferPolicy.findUnique({ where: { walletAddress } });
+
+    // Auto-upgrade stale NO_KYC_DAILY_50 policies for wallets that already have KYC verified
+    if (policy?.policyStatus === NO_KYC_DAILY_50) {
+      const kycClaim = await this.prisma.complianceClaim.findFirst({
+        where: { walletAddress, claimType: 'KYC_AML_VERIFIED', status: 'VERIFIED' },
+      });
+      if (kycClaim) {
+        await this.prisma.walletTransferPolicy.update({
+          where: { walletAddress },
+          data: { policyStatus: KYC_USER_CONFIGURABLE },
+        });
+        policy = await this.prisma.walletTransferPolicy.findUnique({ where: { walletAddress } });
+      }
     }
+
     return {
-      policyStatus: policy.policyStatus,
-      dailyLimitUsd: policy.dailyLimitUsd,
-      limitToken: policy.limitToken,
-      canModifyLimit: policy.policyStatus === KYC_USER_CONFIGURABLE,
+      policyStatus: policy!.policyStatus,
+      dailyLimitUsd: policy!.dailyLimitUsd,
+      limitToken: policy!.limitToken,
+      canModifyLimit: policy!.policyStatus === KYC_USER_CONFIGURABLE,
     };
   }
 

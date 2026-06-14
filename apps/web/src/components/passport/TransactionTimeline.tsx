@@ -57,7 +57,7 @@ export function TransactionTimeline({ transactions }: Props) {
                   {tx.contractName}
                 </span>
                 <span className={`text-[10px] font-semibold ${STATUS_COLORS[tx.status]}`}>
-                  {tx.status}
+                  {tx.status === 'SIMULATED' ? 'DEMO' : tx.status}
                 </span>
               </div>
               <p className="text-sm text-white font-medium">{tx.action}</p>

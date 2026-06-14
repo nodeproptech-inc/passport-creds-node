@@ -46,7 +46,9 @@ export class CREController {
     const now = new Date();
 
     const claimStatus: ClaimStatus = approved ? 'VERIFIED' : 'FAILED';
-    const txStatus = claimRegistryTxHash?.startsWith('0x') ? 'SIMULATED' : 'CONFIRMED';
+    // A real tx hash is 0x + 64 hex chars. Demo mode returns shorter/fake hashes.
+    const isRealTx = /^0x[a-fA-F0-9]{64}$/.test(claimRegistryTxHash ?? '');
+    const txStatus = isRealTx ? 'CONFIRMED' : 'SIMULATED';
 
     // Update the ComplianceClaim to its final status
     await this.prisma.complianceClaim.updateMany({
@@ -103,11 +105,20 @@ export class CREController {
 
     const recalculated = calculatePassportStatus(claimStates);
 
+    // In DEMO_MODE the CRE never mints onchain, so assign a simulated tokenId
+    // when the passport first reaches a minted status (LIMITED or GREEN).
+    const profile = await this.prisma.walletProfile.findUnique({ where: { walletAddress } });
+    const shouldSetTokenId =
+      !profile?.passportTokenId &&
+      (recalculated === 'LIMITED' || recalculated === 'GREEN');
+    const simulatedTokenId = shouldSetTokenId ? '1' : undefined;
+
     await this.prisma.walletProfile.update({
       where: { walletAddress },
       data: {
         passportStatus: recalculated as any,
         passportTxHash: passportTxHash ?? claimRegistryTxHash ?? null,
+        ...(simulatedTokenId ? { passportTokenId: simulatedTokenId } : {}),
       },
     });
 

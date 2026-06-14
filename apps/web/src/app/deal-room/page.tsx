@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ConnectWalletButton } from '@/components/wallet/ConnectWalletButton';
 import { PrivyLoginButton } from '@/components/wallet/PrivyLoginButton';
@@ -16,6 +17,7 @@ import { shortenAddress } from '@/lib/format';
 const HAS_PRIVY = !!process.env.NEXT_PUBLIC_PRIVY_APP_ID;
 
 export default function DealRoomPage() {
+  const router = useRouter();
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [walletProvider, setWalletProvider] = useState<'privy' | 'metamask'>('privy');
   const [passport, setPassport] = useState<PassportState | null>(null);
@@ -42,6 +44,21 @@ export default function DealRoomPage() {
     [fetchPassport],
   );
 
+  const handlePrivyWalletReady = useCallback(
+    (addr: string) => handleWalletReady(addr, 'privy'),
+    [handleWalletReady],
+  );
+  const handleMetaMaskWalletReady = useCallback(
+    (addr: string) => handleWalletReady(addr, 'metamask'),
+    [handleWalletReady],
+  );
+
+  function handleDisconnect() {
+    setWalletAddress(null);
+    setPassport(null);
+    router.push('/');
+  }
+
   useEffect(() => {
     if (walletAddress && passport?.claims.some((c) => c.status === 'PENDING' || c.status === 'PROCESSING')) {
       const t = setInterval(() => fetchPassport(walletAddress), 3000);
@@ -56,18 +73,14 @@ export default function DealRoomPage() {
           <p className="text-4xl mb-4">🔒</p>
           <h2 className="text-2xl font-bold text-white mb-2">Login to continue.</h2>
           <p className="text-[#8FA0C0] mb-6 max-w-sm">
-            {HAS_PRIVY
-              ? 'Login with email or Google to access this Deal Room.'
-              : 'Connect MetaMask to access this Deal Room.'}
+            Login with your email to access this Deal Room.
           </p>
           <div className="flex flex-wrap gap-3 justify-center">
-            {HAS_PRIVY && (
-              <PrivyLoginButton
-                onWalletReady={(addr) => handleWalletReady(addr, 'privy')}
-                address={null}
-              />
+            {HAS_PRIVY ? (
+              <PrivyLoginButton onWalletReady={handlePrivyWalletReady} address={null} />
+            ) : (
+              <ConnectWalletButton onConnect={handleMetaMaskWalletReady} address={null} />
             )}
-            <ConnectWalletButton onConnect={(addr) => handleWalletReady(addr, 'metamask')} address={null} />
           </div>
         </div>
       );
@@ -115,14 +128,10 @@ export default function DealRoomPage() {
             {walletAddress && (
               <span className="text-xs font-mono text-[#8FA0C0]">{shortenAddress(walletAddress)}</span>
             )}
-            {!walletAddress && HAS_PRIVY && (
-              <PrivyLoginButton
-                onWalletReady={(addr) => handleWalletReady(addr, 'privy')}
-                address={null}
-              />
-            )}
-            {!walletAddress && !HAS_PRIVY && (
-              <ConnectWalletButton onConnect={(addr) => handleWalletReady(addr, 'metamask')} address={walletAddress} />
+            {!walletAddress && (
+              HAS_PRIVY
+                ? <PrivyLoginButton onWalletReady={handlePrivyWalletReady} address={null} />
+                : <ConnectWalletButton onConnect={handleMetaMaskWalletReady} address={null} />
             )}
             <Link
               href="/passport"
