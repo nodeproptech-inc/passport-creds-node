@@ -2,12 +2,17 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import { PrivyLoginButton } from '@/components/wallet/PrivyLoginButton';
 import { ConnectWalletButton } from '@/components/wallet/ConnectWalletButton';
 import { ComplianceProgressStepper } from '@/components/passport/ComplianceProgressStepper';
 import { EvidenceCard } from '@/components/passport/EvidenceCard';
 import { PassportCard } from '@/components/passport/PassportCard';
+import { CompliancePassportNFTCard } from '@/components/passport/CompliancePassportNFTCard';
+import { PassportWalletCard } from '@/components/passport/PassportWalletCard';
 import { TransactionTimeline } from '@/components/passport/TransactionTimeline';
 import { AccessDecisionBanner } from '@/components/passport/AccessDecisionBanner';
+import { TransferPolicyBanner } from '@/components/wallet/TransferPolicyBanner';
+import { TransferLimitForm } from '@/components/wallet/TransferLimitForm';
 import {
   getPassportState,
   startVerification,
@@ -15,16 +20,17 @@ import {
   syncVerificationOnchain,
   submitDocument,
 } from '@/modules/passport/passport.service';
+import { getWalletPolicy, updateTransferLimit } from '@/modules/wallet/wallet.service';
+import type { WalletPolicy } from '@/modules/wallet/wallet.service';
 import type { PassportState, ClaimType } from '@/modules/passport/passport.types';
 import { PRODUCT_NAME } from '@/modules/passport/passport.constants';
+
+const HAS_PRIVY = !!process.env.NEXT_PUBLIC_PRIVY_APP_ID;
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      resolve(result.split(',')[1]);
-    };
+    reader.onload = () => resolve((reader.result as string).split(',')[1]);
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
@@ -32,28 +38,24 @@ function fileToBase64(file: File): Promise<string> {
 
 const POLL_INTERVAL_ACTIVE_MS = 3000;
 const POLL_INTERVAL_IDLE_MS = 5000;
-
 const ACTIVE_STATUSES = new Set(['PENDING', 'PROCESSING']);
 
 function isActive(state: PassportState | null): boolean {
   if (!state) return false;
-  return (
-    state.status === 'IN_PROGRESS' ||
-    state.claims.some((c) => ACTIVE_STATUSES.has(c.status))
-  );
+  return state.status === 'IN_PROGRESS' || state.claims.some((c) => ACTIVE_STATUSES.has(c.status));
 }
 
 export default function PassportPage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [walletProvider, setWalletProvider] = useState<'privy' | 'metamask'>('privy');
   const [passport, setPassport] = useState<PassportState | null>(null);
+  const [walletPolicy, setWalletPolicy] = useState<WalletPolicy | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [startingClaim, setStartingClaim] = useState<ClaimType | null>(null);
   const [simulatingClaim, setSimulatingClaim] = useState<ClaimType | null>(null);
   const [submittingClaim, setSubmittingClaim] = useState<ClaimType | null>(null);
-  const [activeVerificationIds, setActiveVerificationIds] = useState<
-    Partial<Record<ClaimType, string>>
-  >({});
+  const [activeVerificationIds, setActiveVerificationIds] = useState<Partial<Record<ClaimType, string>>>({});
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchPassport = useCallback(async (addr: string) => {
@@ -68,45 +70,43 @@ export default function PassportPage() {
     }
   }, []);
 
-  const handleWalletConnect = useCallback(
-    async (address: string) => {
+  const fetchPolicy = useCallback(async (addr: string) => {
+    try {
+      const policy = await getWalletPolicy(addr);
+      setWalletPolicy(policy);
+    } catch {
+      // Policy not critical — silently skip
+    }
+  }, []);
+
+  const handleWalletReady = useCallback(
+    async (address: string, provider: 'privy' | 'metamask' = 'privy') => {
       setWalletAddress(address);
+      setWalletProvider(provider);
       setLoading(true);
-      await fetchPassport(address);
+      await Promise.all([fetchPassport(address), fetchPolicy(address)]);
       setLoading(false);
     },
-    [fetchPassport]
+    [fetchPassport, fetchPolicy],
   );
 
   function handleDisconnect() {
     setWalletAddress(null);
     setPassport(null);
+    setWalletPolicy(null);
     setError(null);
     setActiveVerificationIds({});
   }
 
-  // Always poll while wallet is connected — faster when something is active
   useEffect(() => {
     if (!walletAddress) {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
-      }
+      if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
       return;
     }
     const interval = isActive(passport) ? POLL_INTERVAL_ACTIVE_MS : POLL_INTERVAL_IDLE_MS;
-    if (pollingRef.current) {
-      clearInterval(pollingRef.current);
-    }
-    pollingRef.current = setInterval(() => {
-      fetchPassport(walletAddress);
-    }, interval);
-    return () => {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
-      }
-    };
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    pollingRef.current = setInterval(() => { fetchPassport(walletAddress); }, interval);
+    return () => { if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; } };
   }, [walletAddress, passport, fetchPassport]);
 
   async function handleStartVerification(claimType: ClaimType) {
@@ -136,6 +136,7 @@ export default function PassportPage() {
       const scenario = claimType === 'KYC_AML_VERIFIED' ? 1 : 3;
       await injectMockAiResult(verificationId, scenario as 1 | 3);
       await fetchPassport(walletAddress);
+      await fetchPolicy(walletAddress);
     } catch {
       setError(`Failed to simulate ${claimType}.`);
     } finally {
@@ -175,6 +176,12 @@ export default function PassportPage() {
     }
   }
 
+  async function handleUpdateTransferLimit(newLimit: number) {
+    if (!walletAddress) return;
+    await updateTransferLimit(walletAddress, newLimit);
+    await fetchPolicy(walletAddress);
+  }
+
   const kycClaim = passport?.claims.find((c) => c.claimType === 'KYC_AML_VERIFIED');
   const accreditedClaim = passport?.claims.find((c) => c.claimType === 'ACCREDITED_INVESTOR');
 
@@ -189,7 +196,22 @@ export default function PassportPage() {
             </div>
             <span className="font-bold text-[#0D1428] text-sm">{PRODUCT_NAME}</span>
           </Link>
-          <ConnectWalletButton onConnect={handleWalletConnect} onDisconnect={handleDisconnect} address={walletAddress} />
+          <div className="flex items-center gap-2">
+            {HAS_PRIVY && (
+              <PrivyLoginButton
+                onWalletReady={(addr) => handleWalletReady(addr, 'privy')}
+                onDisconnect={handleDisconnect}
+                address={walletProvider === 'privy' ? walletAddress : null}
+              />
+            )}
+            {(!HAS_PRIVY || walletProvider === 'metamask') && (
+              <ConnectWalletButton
+                onConnect={(addr) => handleWalletReady(addr, 'metamask')}
+                onDisconnect={handleDisconnect}
+                address={walletProvider === 'metamask' ? walletAddress : null}
+              />
+            )}
+          </div>
         </div>
       </header>
 
@@ -206,18 +228,37 @@ export default function PassportPage() {
             </span>
           </h1>
           <p className="text-sm text-[#4B5568] mt-1">
-            Connect your wallet and complete compliance verification to unlock the Node PropTech Deal Room.
+            Login and complete compliance verification to unlock the Node PropTech Deal Room.
           </p>
         </div>
 
         {!walletAddress && (
           <div className="bg-white border border-[#DDE1EA] rounded-2xl p-10 text-center shadow-sm mb-6">
             <p className="text-4xl mb-4">🔗</p>
-            <h2 className="text-lg font-bold text-[#0D1428] mb-2">Connect Your Wallet</h2>
+            <h2 className="text-lg font-bold text-[#0D1428] mb-2">Login to Continue</h2>
             <p className="text-sm text-[#4B5568] mb-6">
-              Connect MetaMask to view your Compliance Passport.
+              {HAS_PRIVY
+                ? 'Login with email or Google to create your embedded wallet — no MetaMask required.'
+                : 'Connect MetaMask to view your Compliance Passport.'}
             </p>
-            <ConnectWalletButton onConnect={handleWalletConnect} address={null} />
+            <div className="flex justify-center gap-3 flex-wrap">
+              {HAS_PRIVY && (
+                <PrivyLoginButton
+                  onWalletReady={(addr) => handleWalletReady(addr, 'privy')}
+                  onDisconnect={handleDisconnect}
+                  address={null}
+                />
+              )}
+              <ConnectWalletButton
+                onConnect={(addr) => handleWalletReady(addr, 'metamask')}
+                address={null}
+              />
+            </div>
+            {HAS_PRIVY && (
+              <p className="text-[10px] text-[#9CA3AF] mt-4">
+                MetaMask also available for advanced users.
+              </p>
+            )}
           </div>
         )}
 
@@ -228,10 +269,7 @@ export default function PassportPage() {
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600 mb-4">
             {error}{' '}
-            <button
-              onClick={() => walletAddress && fetchPassport(walletAddress)}
-              className="underline ml-1"
-            >
+            <button onClick={() => walletAddress && fetchPassport(walletAddress)} className="underline ml-1">
               Retry
             </button>
           </div>
@@ -249,10 +287,10 @@ export default function PassportPage() {
               />
             </div>
 
-            {/* Two-column layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            {/* Three-column layout: evidence | passport | wallet */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
               {/* Left: Evidence cards */}
-              <div className="space-y-4">
+              <div className="lg:col-span-1 space-y-4">
                 <EvidenceCard
                   title="KYC / AML Evidence"
                   description="Upload your KYC / AML document. Chainlink Confidential AI Attester will evaluate it in a TEE and the result will be written onchain through Chainlink CRE."
@@ -294,8 +332,16 @@ export default function PassportPage() {
                 />
               </div>
 
-              {/* Right: Passport card */}
-              <div>
+              {/* Center: Passport SBT card */}
+              <div className="lg:col-span-1 space-y-4">
+                <CompliancePassportNFTCard
+                  passportStatus={passport.status}
+                  passportTokenId={passport.passportTokenId}
+                  passportTxHash={passport.passportTxHash}
+                  badges={passport.badges}
+                  walletAddress={walletAddress}
+                />
+
                 <PassportCard
                   walletAddress={walletAddress}
                   status={passport.status}
@@ -303,9 +349,39 @@ export default function PassportPage() {
                   passportTokenId={passport.passportTokenId}
                   passportTxHash={passport.passportTxHash}
                 />
+              </div>
+
+              {/* Right: Wallet info + Transfer policy */}
+              <div className="lg:col-span-1 space-y-4">
+                <PassportWalletCard
+                  walletAddress={walletAddress}
+                  walletProvider={walletProvider}
+                  passportStatus={passport.status}
+                  policy={walletPolicy}
+                />
+
+                {walletPolicy && (
+                  <div className="space-y-4">
+                    <TransferPolicyBanner
+                      policyStatus={walletPolicy.policyStatus}
+                      dailyLimitUsd={walletPolicy.dailyLimitUsd}
+                    />
+                    {walletPolicy.canModifyLimit && (
+                      <div className="bg-white border border-[#DDE1EA] rounded-2xl p-5 shadow-sm">
+                        <p className="text-[11px] font-semibold tracking-widest uppercase text-[#9CA3AF] mb-3">
+                          Daily Transfer Limit
+                        </p>
+                        <TransferLimitForm
+                          currentLimit={walletPolicy.dailyLimitUsd}
+                          onSave={handleUpdateTransferLimit}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Demo fallback controls */}
-                <div className="mt-4 bg-[#F8F9FC] border border-dashed border-[#DDE1EA] rounded-2xl p-4">
+                <div className="bg-[#F8F9FC] border border-dashed border-[#DDE1EA] rounded-2xl p-4">
                   <p className="text-[10px] font-semibold tracking-widest uppercase text-[#9CA3AF] mb-3">
                     Demo Fallback Controls
                   </p>
@@ -325,7 +401,7 @@ export default function PassportPage() {
                       ⚡ Simulate Accredited Investor
                     </button>
                     <button
-                      onClick={() => fetchPassport(walletAddress)}
+                      onClick={() => { fetchPassport(walletAddress); fetchPolicy(walletAddress); }}
                       className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-[#DDE1EA] text-[#9CA3AF] hover:border-[#4A9EFF] hover:text-[#4A9EFF] transition-colors"
                     >
                       ↻ Refresh

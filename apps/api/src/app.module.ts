@@ -7,6 +7,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
 import { CREModule } from './cre/cre.module';
 import { AccessModule } from './access/access.module';
 import { TransactionsModule } from './transactions/transactions.module';
+import { WalletsModule } from './wallets/wallets.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { TransactionsModule } from './transactions/transactions.module';
     CREModule,
     AccessModule,
     TransactionsModule,
+    WalletsModule,
   ],
 })
 export class AppModule {}

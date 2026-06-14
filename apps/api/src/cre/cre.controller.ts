@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Param, Body, HttpCode, HttpStatus, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TransactionsService } from '../transactions/transactions.service';
+import { WalletPolicyService } from '../wallets/wallet-policy.service';
 import { normalizeAddress, calculatePassportStatus } from '../common/utils';
 import type { CREWorkflowResult, ClaimType, ClaimStatus, ComplianceClaimState } from '../common/types';
 
@@ -10,6 +11,7 @@ export class CREController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly transactions: TransactionsService,
+    private readonly walletPolicy: WalletPolicyService,
   ) {}
 
   // CRE calls this to get sanitized verification result before writing onchain.
@@ -108,6 +110,14 @@ export class CREController {
         passportTxHash: passportTxHash ?? claimRegistryTxHash ?? null,
       },
     });
+
+    // Update transfer policy based on new passport status
+    if (claimType === 'KYC_AML_VERIFIED' && approved && recalculated !== 'RED') {
+      await this.walletPolicy.upgradeAfterKyc(walletAddress);
+    }
+    if (recalculated === 'RED' || recalculated === 'REVOKED') {
+      await this.walletPolicy.blockWallet(walletAddress);
+    }
 
     // Update the verification session to COMPLETED
     await this.prisma.verificationSession.update({

@@ -62,6 +62,11 @@ enum ContractName {
   AccessGate
 }
 
+enum WalletProvider {
+  METAMASK
+  PRIVY_EMBEDDED
+}
+
 // ─── Models ───────────────────────────────────────────────
 
 model WalletProfile {
@@ -71,16 +76,53 @@ model WalletProfile {
   passportStatus  PassportStatus @default(NONE)
   passportTokenId String?
   passportTxHash  String?
+  walletProvider  WalletProvider @default(METAMASK)
+  privyUserId     String?
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
-  claims        ComplianceClaim[]
-  verifications VerificationSession[]
-  transactions  TransactionRecord[]
+  claims         ComplianceClaim[]
+  verifications  VerificationSession[]
+  transactions   TransactionRecord[]
+  transferPolicy WalletTransferPolicy?
 
   @@index([walletAddress])
   @@index([tenantId])
   @@index([passportStatus])
+  @@index([privyUserId])
+}
+
+model WalletTransferPolicy {
+  id            String   @id @default(cuid())
+  walletAddress String   @unique
+  policyStatus  String   @default("NO_KYC_DAILY_50")
+  dailyLimitUsd Float    @default(50)
+  limitToken    String   @default("USDC")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  wallet    WalletProfile               @relation(fields: [walletAddress], references: [walletAddress])
+  decisions WalletTransferPolicyDecision[]
+
+  @@index([walletAddress])
+  @@index([policyStatus])
+}
+
+model WalletTransferPolicyDecision {
+  id                 String   @id @default(cuid())
+  walletAddress      String
+  allowed            Boolean
+  reason             String
+  requestedAmountUsd Float
+  dailySpentUsd      Float    @default(0)
+  dailyLimitUsd      Float
+  policyStatus       String
+  createdAt          DateTime @default(now())
+
+  policy WalletTransferPolicy @relation(fields: [walletAddress], references: [walletAddress])
+
+  @@index([walletAddress])
+  @@index([createdAt])
 }
 
 model ComplianceClaim {
