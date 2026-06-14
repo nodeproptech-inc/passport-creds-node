@@ -202,6 +202,22 @@ Key design decisions:
 - AI output never goes onchain — only a `keccak256` attestation hash is written as the onchain fingerprint
 - Replay protection — `verificationIdHash` permanently stored in ClaimRegistry; duplicate submissions revert
 
+### Privy Embedded Wallet + Compliance-Gated Transfer Policy
+
+Privy provides the identity layer — users connect with email or social login, no browser extension needed. The wallet address becomes the compliance identity that drives every claim, passport, and access decision in the system.
+
+Beyond authentication, we use Privy's wallet infrastructure to enforce **compliance-driven transfer policies**. The passport status directly controls what a wallet can do:
+
+| Passport status | Transfer policy |
+|---|---|
+| No KYC | Capped at $50 USD/day (`NO_KYC_DAILY_50`) |
+| KYC/AML verified | User-configurable limit (`KYC_USER_CONFIGURABLE`) |
+| Compliance failed / revoked | Fully blocked (`BLOCKED`) |
+
+Policies upgrade automatically when a claim is verified and downgrade when a passport is revoked. This is the foundation for compliant onchain financial products built on Privy — the compliance passport directly governs wallet behaviour.
+
+See: [`apps/api/src/wallets/wallet-policy.service.ts`](apps/api/src/wallets/wallet-policy.service.ts)
+
 ### Chainlink CRE
 
 CRE is the **sole authorized writer** to our smart contracts. It holds `CRE_UPDATER_ROLE` — the only key allowed to call `ClaimRegistry.submitClaim` and `CompliancePassport.syncPassport`.
