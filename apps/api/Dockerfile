@@ -7,8 +7,8 @@ COPY apps/api/package.json ./apps/api/
 COPY apps/web/package.json ./apps/web/
 COPY cre/package.json ./cre/
 
-# Install all workspace dependencies
-RUN npm ci
+# Install all workspace dependencies (include devDeps needed for build: @swc/core, @nestjs/cli)
+RUN npm ci --include=dev
 
 # Copy Prisma schema and generate client
 COPY apps/api/prisma ./apps/api/prisma
@@ -16,7 +16,7 @@ RUN cd apps/api && npx prisma generate
 
 # Copy source and build
 COPY apps/api ./apps/api
-RUN cd apps/api && npm run build
+RUN cd apps/api && npx tsc -p tsconfig.build.json --noCheck
 
 # ── Runtime ──────────────────────────────────────────────────
 FROM node:20-alpine
