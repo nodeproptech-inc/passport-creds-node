@@ -78,6 +78,13 @@ export default function PassportPage() {
     [fetchPassport]
   );
 
+  function handleDisconnect() {
+    setWalletAddress(null);
+    setPassport(null);
+    setError(null);
+    setActiveVerificationIds({});
+  }
+
   // Always poll while wallet is connected — faster when something is active
   useEffect(() => {
     if (!walletAddress) {
@@ -182,7 +189,7 @@ export default function PassportPage() {
             </div>
             <span className="font-bold text-[#0D1428] text-sm">{PRODUCT_NAME}</span>
           </Link>
-          <ConnectWalletButton onConnect={handleWalletConnect} address={walletAddress} />
+          <ConnectWalletButton onConnect={handleWalletConnect} onDisconnect={handleDisconnect} address={walletAddress} />
         </div>
       </header>
 
@@ -265,7 +272,7 @@ export default function PassportPage() {
 
                 <EvidenceCard
                   title="Accredited Investor Evidence"
-                  description="Upload your Accredited Investor documentation. Chainlink Confidential AI Attester will evaluate it and the claim will be written onchain through Chainlink CRE."
+                  description="Upload your Accredited Investor documentation. For demo purposes, Chainlink Confidential AI Attester classifies the evidence — this does not constitute legal verification. In production, accreditation must be confirmed through approved partners and counsel."
                   claimType="ACCREDITED_INVESTOR"
                   status={accreditedClaim?.status ?? 'UNVERIFIED'}
                   summary={accreditedClaim?.summary ?? undefined}
