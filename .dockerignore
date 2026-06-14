@@ -10,7 +10,6 @@ cre/dist/
 contracts/
 .git/
 data/
-demo/
 
 *.log
 .env
