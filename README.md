@@ -241,10 +241,43 @@ CRE workflow per verification:
 | `ClaimRegistry.sol` | AccessControl | Stores verified claims per wallet. Only CRE can write. |
 | `CompliancePassport.sol` | ERC-721 + ERC-5192 | Soulbound passport. Minted on first claim. Status derived from ClaimRegistry. |
 | `AccessGate.sol` | Read-only | Reads ClaimRegistry + CompliancePassport. Answers `canAccessDealRoom`, `canAccessInvestorArea`. |
+| `hooks/ComplianceHook.sol` | Uniswap v4 hook | Gates swaps + liquidity adds on AccessGate. Exit is never gated. |
+| `agents/HouseToken.sol` | ERC-20 | House scrip (CASA). Minted only by its treasury; `reclaim` claws it back. The agent's balance *is* its budget. |
+| `agents/HouseTreasury.sol` | Governance | Owners, m-of-n approvals, agent mandate (`perTxCap`, `expiresAt`), payment queue. `isAgentInGoodStanding` is the one view every agent surface gates on. |
+| `hooks/MandateHook.sol` | Uniswap v4 hook | Gates the CASA/mUSD pool: compliant owners, or a mandated agent within its per-tx cap. Exit is never gated. |
 
 Claims: `KYC_AML_VERIFIED` · `ACCREDITED_INVESTOR`
 
 Passport status: `NONE → IN_PROGRESS → LIMITED → GREEN` (or `RED` on KYC failure, `REVOKED` by admin)
+
+### Uniswap v4 ComplianceHook
+
+The same AccessGate that guards the Deal Room can guard a Uniswap v4 pool: the
+ComplianceHook checks the swapper (and liquidity provider) in `beforeSwap` /
+`beforeAddLiquidity` and reverts `NotCompliant(wallet, reasonCode)` for anyone the
+gate refuses — removing liquidity is deliberately ungated so funds are never trapped.
+Two demo pools show policy separation: a Deal Room pool (LIMITED or GREEN) and an
+Investor pool (GREEN only).
+
+- Local demo: `make hook-demo` → http://localhost:4180 (spawns anvil + deploys everything)
+- Tests: `cd contracts && forge test --match-contract ComplianceHookTest`
+- Spec & design notes: [`docs/specs/uniswap-hook-spec.md`](docs/specs/uniswap-hook-spec.md)
+
+### House Concierge Agent
+
+**Agents don't KYC.** So the concierge doesn't pretend to: its authority is a mandate
+granted by the house's owners, and it only holds while those owners' passports stay
+live. Every enforcement point — the MandateHook on the CASA/mUSD pool and the
+HouseTreasury approval queue — re-reads the owners' `AccessGate` status in the same
+block, so revoking one owner's KYC instantly strips the AI of both its market access
+and its treasury (`OWNER_NOT_COMPLIANT`). Routine tickets are paid autonomously
+(swap CASA→mUSD through the gated pool, then settle the vendor's x402 invoice);
+anything above the per-tx cap is queued for m-of-n owner approval with the agent's
+decision hash anchored on-chain.
+
+- Local demo: `make concierge-demo` → http://localhost:4190 (anvil + deploy + mock x402 vendor on :4191)
+- Tests: `cd contracts && forge test --match-path 'test/agents/*'` (29) and `cd apps/concierge && npm test` (28)
+- Spec & design notes: [`docs/specs/agent-concierge-spec.md`](docs/specs/agent-concierge-spec.md)
 
 ---
 

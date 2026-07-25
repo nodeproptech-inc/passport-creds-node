@@ -8,6 +8,9 @@ import { CREModule } from './cre/cre.module';
 import { AccessModule } from './access/access.module';
 import { TransactionsModule } from './transactions/transactions.module';
 import { WalletsModule } from './wallets/wallets.module';
+import { IssuerModule } from './issuer/issuer.module';
+import { EligibilityModule } from './eligibility/eligibility.module';
+import { IdentityModule } from './identity/identity.module';
 
 @Module({
   imports: [
@@ -20,6 +23,9 @@ import { WalletsModule } from './wallets/wallets.module';
     AccessModule,
     TransactionsModule,
     WalletsModule,
+    IssuerModule,
+    EligibilityModule,
+    IdentityModule,
   ],
 })
 export class AppModule {}

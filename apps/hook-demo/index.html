@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ComplianceHook — PassportKit by Node</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%234A9EFF'/><text x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='bold'>PK</text></svg>">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+  :root {
+    --bg: #F0F2F6; --card: #FFFFFF; --border: #DDE1EA;
+    --ink: #0D1428; --body: #4B5568; --muted: #9CA3AF;
+    --cyan: #4A9EFF; --teal: #3DDBD9;
+    --green: #16A34A; --green-bg: #DCFCE7;
+    --amber: #CA8A04; --amber-bg: #FEF9C3;
+    --red: #DC2626; --red-bg: #FEE2E2;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.55 'Inter', ui-sans-serif, system-ui, sans-serif; }
+
+  nav { background: var(--card); border-bottom: 1px solid var(--border); }
+  .nav-in { max-width: 1160px; margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-sq { width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(90deg, var(--cyan), var(--teal)); display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 12px; }
+  .logo b { font-size: 14px; }
+  .logo span { color: var(--muted); font-size: 12.5px; }
+  .navchips { display: flex; gap: 8px; align-items: center; }
+  .chain { font: 500 11.5px var(--mono); color: var(--body); border: 1px solid var(--border); border-radius: 999px; padding: 5px 11px; }
+  .chain i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--red); margin-right: 6px; }
+  .chain.up i { background: var(--green); }
+  .warpchip { display: none; font: 600 11px var(--mono); color: var(--amber); background: var(--amber-bg); border-radius: 999px; padding: 5px 11px; }
+  .warpchip.on { display: inline-block; }
+
+  .wrap { max-width: 1160px; margin: 0 auto; padding: 30px 24px 64px; }
+  .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--cyan); margin: 0 0 4px; }
+  h1 { font-size: 26px; font-weight: 700; margin: 0 0 6px; }
+  h1 .grad { background: linear-gradient(90deg, var(--cyan), var(--teal)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .sub { color: var(--body); max-width: 74ch; margin: 0 0 20px; }
+
+  .pools { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; margin-bottom: 22px; }
+  .pool { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .pool h3 { margin: 0; font-size: 14px; }
+  .pool p { margin: 2px 0 0; font-size: 12px; color: var(--body); }
+  .pool .addr { font: 500 11px var(--mono); color: var(--muted); }
+  .pool .stats { font: 500 11px var(--mono); color: var(--body); margin-top: 3px; }
+  .policy { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 5px 10px; border-radius: 999px; white-space: nowrap; }
+  .policy.deal { background: var(--amber-bg); color: var(--amber); }
+  .policy.inv { background: var(--green-bg); color: var(--green); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 4px; }
+  .card h2 { margin: 0; font-size: 16px; text-transform: capitalize; }
+  .role { color: var(--body); font-size: 12px; margin: 1px 0 10px; }
+
+  .badge { font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: 4px 9px; border-radius: 999px; white-space: nowrap; }
+  .badge.NONE, .badge.UNVERIFIED, .badge.IN_PROGRESS { background: #EEF0F4; color: var(--muted); }
+  .badge.LIMITED { background: var(--amber-bg); color: var(--amber); }
+  .badge.GREEN, .badge.VERIFIED { background: var(--green-bg); color: var(--green); }
+  .badge.RED, .badge.REVOKED, .badge.FAILED, .badge.EXPIRED { background: var(--red-bg); color: var(--red); }
+
+  .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid #F1F3F7; font-size: 12.5px; }
+  .row:last-of-type { border-bottom: 0; }
+  .row .k { color: var(--body); }
+  .row .v { font: 500 11.5px var(--mono); color: var(--ink); display: flex; align-items: center; gap: 6px; }
+  .ok { color: var(--green); font-weight: 700; }
+  .no { color: var(--red); font-weight: 700; }
+  .reason { font: 500 10px var(--mono); color: var(--red); }
+
+  .actrows { margin-top: 12px; display: flex; flex-direction: column; gap: 7px; }
+  .actrow { display: flex; align-items: center; gap: 7px; }
+  .actrow .lbl { flex: none; width: 68px; font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+  button { font: 600 12px 'Inter', sans-serif; padding: 7px 11px; border-radius: 8px; cursor: pointer; border: 1px solid var(--border); background: var(--card); color: var(--ink); }
+  button:hover:not(:disabled) { border-color: var(--cyan); }
+  button:disabled { opacity: .45; cursor: wait; }
+  button.primary { background: linear-gradient(90deg, var(--cyan), var(--teal)); border: 0; color: #fff; }
+  .ops { border-top: 1px dashed var(--border); margin-top: 14px; padding-top: 10px; }
+  .ops .label { font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 7px; }
+  .btns { display: flex; flex-wrap: wrap; gap: 7px; }
+  button.verify { color: var(--green); border-color: #BBE7C9; }
+  button.danger { color: var(--red); border-color: #F3C4C4; }
+
+  .globalbar { display: flex; gap: 8px; align-items: center; margin: 20px 0 0; }
+  .globalbar .label { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-right: 4px; }
+  .globalbar.hidden { display: none; }
+
+  .log-card { margin-top: 18px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
+  .log-head { display: flex; justify-content: space-between; align-items: baseline; }
+  .log-head h2 { margin: 0; font-size: 15px; }
+  #log { margin-top: 10px; max-height: 280px; overflow-y: auto; background: #0D1428; border-radius: 8px; padding: 12px 14px; font: 12px/1.75 var(--mono); color: #C7D0DE; }
+  #log .t { color: #5C6A82; }
+  #log .good { color: #4ADE80; }
+  #log .bad { color: #F87171; }
+  #log div { white-space: nowrap; }
+  #log a { color: #7EB6FF; cursor: pointer; text-decoration: underline dotted; }
+  #log a.ext { text-decoration: none; }
+
+  /* tx inspector drawer */
+  #drawer {
+    position: fixed; top: 0; right: -420px; width: 400px; height: 100vh; z-index: 50;
+    background: var(--card); border-left: 1px solid var(--border); box-shadow: -8px 0 30px rgba(13,20,40,.12);
+    transition: right .25s ease; overflow-y: auto; padding: 18px;
+  }
+  #drawer.open { right: 0; }
+  #drawer h2 { margin: 0 0 2px; font-size: 15px; }
+  #drawer .hash { font: 500 11px var(--mono); color: var(--body); word-break: break-all; margin: 0 0 12px; }
+  #drawer .meta { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 12px; margin-bottom: 14px; }
+  #drawer .meta .k { color: var(--muted); }
+  #drawer .meta .v { font: 500 11.5px var(--mono); }
+  #drawer .evt { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+  #drawer .evt .head { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+  #drawer .evt .head .c { color: var(--cyan); font-weight: 600; font-size: 11px; }
+  #drawer .evt .arg { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; padding: 1.5px 0; }
+  #drawer .evt .arg .k { color: var(--muted); }
+  #drawer .evt .arg .v { font: 500 10.5px var(--mono); word-break: break-all; text-align: right; }
+  #drawer .close { position: absolute; top: 12px; right: 14px; }
+  #drawer .status-ok { color: var(--green); font-weight: 700; }
+  #drawer .status-bad { color: var(--red); font-weight: 700; }
+
+  details { margin-top: 18px; color: var(--body); font-size: 13px; }
+  details summary { cursor: pointer; color: var(--ink); font-weight: 600; }
+  details ol { margin: 8px 0 0; padding-left: 20px; }
+  details li { margin: 4px 0; }
+  .foot { margin-top: 22px; color: var(--muted); font-size: 12px; }
+  .foot code { font-family: var(--mono); font-size: 11px; }
+</style>
+</head>
+<body>
+<nav><div class="nav-in">
+  <div class="logo"><div class="logo-sq">PK</div><div><b>PassportKit</b> <span>by Node · ComplianceHook demo</span></div></div>
+  <div class="navchips">
+    <span class="warpchip" id="warpchip">⏱ clock warped</span>
+    <span class="chain" id="chain"><i></i><span id="chainlabel">connecting…</span></span>
+  </div>
+</div></nav>
+
+<div class="wrap">
+  <p class="eyebrow">Uniswap v4 · Surface #4</p>
+  <h1>A pool that <span class="grad">reads your credentials</span></h1>
+  <p class="sub">Both pools call the same <b>EligibilityGate</b> that guards every other PassportKit surface —
+    before every swap and every liquidity add. No new eligibility logic, no allowlists to maintain: verify,
+    revoke or expire a claim and the pools react instantly. Removing liquidity is never gated — funds are
+    never trapped.</p>
+
+  <div class="pools" id="pools"></div>
+  <div class="grid" id="actors"></div>
+
+  <div class="globalbar" id="worldbar">
+    <span class="label">World</span>
+    <button onclick="timewarp()">⏩ Fast-forward 1 year</button>
+    <button onclick="resetWorld()">↺ Reset world</button>
+  </div>
+
+  <div class="log-card">
+    <div class="log-head"><h2>On-chain log</h2><button id="clearlog">clear</button></div>
+    <div id="log"><div class="t">waiting for first action… (click any tx hash to inspect it)</div></div>
+  </div>
+
+  <details>
+    <summary>Demo script (2 minutes)</summary>
+    <ol>
+      <li><b>Rui swaps</b> — identity with no claims → pool reverts <code>NotCompliant(MISSING_KYC)</code>.</li>
+      <li><b>⚡ Verify Rui's KYC</b> (the issuer signs EIP-712, Rui submits it to his own Identity) → he trades the <b>Deal Room pool</b>.</li>
+      <li><b>Ana tries the Investor pool</b> → <code>MISSING_ACCREDITED</code>. Verify accreditation → unlocked.</li>
+      <li><b>Ana adds liquidity</b> (watch her LP position and token deltas), then <b>Revoke KYC ⚠</b> (the issuer's latch) → both pools refuse her — but <b>Exit still works</b>. Never trap funds. <b>Restore KYC</b> puts her back in.</li>
+      <li><b>⏩ Fast-forward 1 year</b> — claims expire; even the operator gets <code>MISSING_KYC</code>. Compliance is live, not a snapshot.</li>
+      <li>Click any <b>tx hash</b> in the log — decoded events, straight from the chain.</li>
+    </ol>
+  </details>
+
+  <p class="foot">Contracts: <code id="addrs"></code></p>
+</div>
+
+<div id="drawer">
+  <button class="close" onclick="closeDrawer()">✕</button>
+  <div id="drawer-content"><p class="hash">select a transaction…</p></div>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const short = (a) => a ? a.slice(0, 6) + '…' + a.slice(-4) : '—';
+const busy = new Set();
+let POOL = { token0: 'PROP', token1: 'mUSD' };
+let LOCAL = true;
+let EXPLORER = null;
+
+const ROLES = {
+  operator: 'Admin, issuer signer & liquidity provider',
+  ana: 'Investor with KYC — accreditation still pending',
+  rui: 'Stranger — identity, zero claims',
+};
+
+function txLink(hash) {
+  const ext = EXPLORER
+    ? ` <a class="ext" href="${EXPLORER}/tx/${hash}" target="_blank" rel="noopener" title="open in explorer">↗</a>`
+    : '';
+  return `<a onclick="inspect('${hash}')" title="inspect tx">${short(hash)}</a>${ext}`;
+}
+const txLinks = (hashes) => hashes.map(txLink).join(', ');
+
+function log(line) {
+  const div = document.createElement('div');
+  div.innerHTML = `<span class="t">${new Date().toLocaleTimeString()}</span> ${line}`;
+  $('#log').prepend(div);
+}
+
+function claimRow(label, c) {
+  const exp = c.expiresAt ? ` · exp ${new Date(c.expiresAt * 1000).toISOString().slice(0, 10)}` : '';
+  return `<div class="row"><span class="k">${label}</span>
+    <span class="v"><span class="badge ${c.status}">${c.status}</span><span style="color:var(--muted);font-size:10px">${exp}</span></span></div>`;
+}
+
+function accessRow(label, a) {
+  return `<div class="row"><span class="k">${label}</span>
+    <span class="v">${a.allowed ? '<span class="ok">✓ allowed</span>' : `<span class="no">✗</span> <span class="reason">${a.reason ?? ''}</span>`}</span></div>`;
+}
+
+function actorCard(a) {
+  const dis = busy.has(a.name) ? 'disabled' : '';
+  const lp = (v) => Number(v).toFixed(1);
+  return `<div class="card">
+    <div class="card-top">
+      <div><h2>${a.name}</h2><p class="role">${ROLES[a.name] ?? ''}</p></div>
+      <span class="badge ${a.identity ? 'VERIFIED' : 'NONE'}">${a.identity ? 'identity · ' + short(a.identity) : 'no identity'}</span>
+    </div>
+    <div class="row"><span class="k">wallet</span><span class="v">${short(a.wallet)}</span></div>
+    ${claimRow('KYC_VERIFIED claim', a.claims.kyc)}
+    ${claimRow('ACCREDITED_INVESTOR claim', a.claims.accredited)}
+    ${accessRow('Deal Room pool', a.access.deal)}
+    ${accessRow('Investor pool', a.access.investor)}
+    <div class="row"><span class="k">LP position deal / inv</span><span class="v">${lp(a.positions.deal)} / ${lp(a.positions.investor)}</span></div>
+    <div class="row"><span class="k">${POOL.token0} / ${POOL.token1}</span><span class="v">${a.balances[POOL.token0]} / ${a.balances[POOL.token1]}</span></div>
+    <div class="actrows">
+      <div class="actrow"><span class="lbl">Deal</span>
+        <button class="primary" ${dis} onclick="swap('${a.name}','deal')">Swap 1</button>
+        <button ${dis} onclick="liq('${a.name}','deal','add')">Add 2 LP</button>
+        <button ${dis} onclick="liq('${a.name}','deal','remove')">Exit 2 LP</button>
+      </div>
+      <div class="actrow"><span class="lbl">Investor</span>
+        <button ${dis} onclick="swap('${a.name}','investor')">Swap 1</button>
+        <button ${dis} onclick="liq('${a.name}','investor','add')">Add 2 LP</button>
+        <button ${dis} onclick="liq('${a.name}','investor','remove')">Exit 2 LP</button>
+      </div>
+    </div>
+    <div class="ops"><div class="label">Issuer controls</div>
+      <div class="btns">
+        <button class="verify" ${dis} onclick="verify('${a.name}','kyc',true)">⚡ Verify KYC</button>
+        <button class="verify" ${dis} onclick="verify('${a.name}','accredited',true)">⚡ Verify accreditation</button>
+        <button class="danger" ${dis} onclick="revokeClaim('${a.name}','kyc')">Revoke KYC ⚠</button>
+        <button class="verify" ${dis} onclick="restoreClaim('${a.name}','kyc')">Restore KYC</button>
+        <button class="danger" ${dis} onclick="revokeIdentity('${a.name}')">Revoke everything ⚠</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function render() {
+  try {
+    const r = await fetch('/api/state');
+    const s = await r.json();
+    POOL = s.pool;
+    LOCAL = s.local;
+    EXPLORER = s.explorer;
+    $('#chain').classList.add('up');
+    $('#chainlabel').textContent =
+      (LOCAL ? 'anvil · ' : 'chain ') + s.chainId + ' · ' + new Date(s.now * 1000).toISOString().slice(0, 10);
+    $('#warpchip').classList.toggle('on', Boolean(s.warped));
+    $('#worldbar').classList.toggle('hidden', !LOCAL);
+    $('#pools').innerHTML = `
+      <div class="pool"><div><h3>Deal Room pool <span class="addr">${short(s.contracts.dealHook)}</span></h3>
+        <p>${POOL.token0}/${POOL.token1} · 0.3% · isEligible(identity, policy ${s.pools.deal.policyId})</p>
+        <p class="stats">liquidity ${s.pools.deal.liquidity} · price ${s.pools.deal.price}</p></div>
+        <span class="policy deal">KYC</span></div>
+      <div class="pool"><div><h3>Investor pool <span class="addr">${short(s.contracts.investorHook)}</span></h3>
+        <p>${POOL.token0}/${POOL.token1} · 0.3% · isEligible(identity, policy ${s.pools.investor.policyId})</p>
+        <p class="stats">liquidity ${s.pools.investor.liquidity} · price ${s.pools.investor.price}</p></div>
+        <span class="policy inv">KYC + Accredited</span></div>`;
+    $('#actors').innerHTML = s.actors.map(actorCard).join('');
+    $('#addrs').textContent =
+      `gate ${short(s.contracts.eligibilityGate)} · issuer ${short(s.contracts.claimIssuer)} · factory ${short(s.contracts.identityFactory)} · poolManager ${short(s.contracts.poolManager)}`;
+  } catch {
+    $('#chain').classList.remove('up');
+    $('#chainlabel').textContent = 'server unreachable';
+  }
+}
+
+async function post(path, body) {
+  const r = await fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  return r.json();
+}
+
+async function act(actor, fn) {
+  busy.add(actor);
+  render();
+  try { await fn(); } finally { busy.delete(actor); render(); }
+}
+
+const fmtDelta = (delta) =>
+  Object.entries(delta).map(([s, v]) => `${Number(v) >= 0 ? '+' : ''}${v} ${s}`).join(', ');
+
+window.swap = (actor, pool) => act(actor, async () => {
+  const r = await post('/api/swap', { actor, pool, zeroForOne: true });
+  if (r.ok) log(`${actor} swap on ${pool} pool <span class="good">✓ filled</span> (${fmtDelta(r.delta)}) tx ${txLink(r.txHash)}`);
+  else log(`${actor} swap on ${pool} pool <span class="bad">✗ ${r.reason}</span> — ${r.message}`);
+});
+
+window.liq = (actor, pool, direction) => act(actor, async () => {
+  const verb = direction === 'remove' ? 'exit 2 LP' : 'add 2 LP';
+  const r = await post('/api/liquidity', { actor, pool, direction });
+  if (r.ok) log(`${actor} ${verb} (${pool}) <span class="good">✓</span> (${fmtDelta(r.delta)} · position now ${Number(r.position).toFixed(1)}) tx ${txLink(r.txHash)}`);
+  else log(`${actor} ${verb} (${pool}) <span class="bad">✗ ${r.reason}</span> — ${r.message}`);
+});
+
+window.verify = (actor, claim, approved) => act(actor, async () => {
+  const label = approved ? `verify ${claim}` : `fail ${claim}`;
+  const r = await post('/api/verify', { actor, claim, approved });
+  if (r.ok) log(`CRE: ${label} for ${actor} <span class="good">✓</span> ${txLinks(r.txHashes)}`);
+  else log(`CRE: ${label} for ${actor} <span class="bad">✗</span> ${r.message}`);
+});
+
+window.revokeClaim = (actor, claim) => act(actor, async () => {
+  const r = await post('/api/revoke-claim', { actor, claim });
+  if (r.ok) log(`issuer: revoke ${claim} of ${actor} <span class="good">✓</span> (latch closed) ${txLinks(r.txHashes)}`);
+  else log(`issuer: revoke ${claim} of ${actor} <span class="bad">✗</span> ${r.message}`);
+});
+
+window.restoreClaim = (actor, claim) => act(actor, async () => {
+  const r = await post('/api/restore-claim', { actor, claim });
+  if (r.ok) log(`issuer: re-approve ${claim} of ${actor} <span class="good">✓</span> (latch re-opened) ${txLinks(r.txHashes)}`);
+  else log(`issuer: re-approve ${claim} of ${actor} <span class="bad">✗</span> ${r.message}`);
+});
+
+window.revokeIdentity = (actor) => act(actor, async () => {
+  const r = await post('/api/revoke-passport', { actor });
+  if (r.ok) log(`issuer: revoke every claim of ${actor} <span class="good">✓</span> ${txLinks(r.txHashes)}`);
+  else log(`issuer: revoke every claim of ${actor} <span class="bad">✗</span> ${r.message}`);
+});
+
+window.timewarp = async () => {
+  const r = await post('/api/timewarp', { days: 366 });
+  log(r.ok ? `world: fast-forwarded ${r.warpedDays} days <span class="good">✓</span>` : `timewarp <span class="bad">✗</span> ${r.message}`);
+  render();
+};
+
+window.resetWorld = async () => {
+  log('world: resetting chain + redeploying…');
+  const r = await post('/api/reset', {});
+  if (r.ok) {
+    $('#log').innerHTML = '';
+    log('world: reset <span class="good">✓</span> fresh chain, fresh contracts, clock back to today');
+  } else log(`reset <span class="bad">✗</span> ${r.message}`);
+  render();
+};
+
+// --- tx inspector ---
+
+window.inspect = async (hash) => {
+  $('#drawer').classList.add('open');
+  $('#drawer-content').innerHTML = `<h2>Transaction</h2><p class="hash">${hash}</p><p style="color:var(--muted)">loading…</p>`;
+  const r = await fetch('/api/tx/' + hash).then((x) => x.json());
+  if (!r.ok) {
+    $('#drawer-content').innerHTML = `<h2>Transaction</h2><p class="hash">${hash}</p><p class="status-bad">${r.message}</p>`;
+    return;
+  }
+  const events = r.logs.map((l) => `
+    <div class="evt">
+      <div class="head"><span>${l.name}</span><span class="c">${l.contract}</span></div>
+      ${l.args ? Object.entries(l.args).map(([k, v]) =>
+        `<div class="arg"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('') :
+        `<div class="arg"><span class="k">topic</span><span class="v">${l.topic ?? ''}</span></div>`}
+    </div>`).join('');
+  $('#drawer-content').innerHTML = `
+    <h2>Transaction</h2>
+    <p class="hash">${hash}${EXPLORER ? ` <a href="${EXPLORER}/tx/${hash}" target="_blank" rel="noopener">open in explorer ↗</a>` : ''}</p>
+    <div class="meta">
+      <span class="k">status</span><span class="v ${r.status === 'success' ? 'status-ok' : 'status-bad'}">${r.status}</span>
+      <span class="k">block</span><span class="v">${r.blockNumber} · ${new Date(r.timestamp * 1000).toLocaleString()}</span>
+      <span class="k">from</span><span class="v">${r.from}</span>
+      <span class="k">to</span><span class="v">${r.contract ?? ''} ${r.to ?? ''}</span>
+      <span class="k">gas used</span><span class="v">${Number(r.gasUsed).toLocaleString()}</span>
+    </div>
+    <div class="head" style="font-weight:600;font-size:12px;margin-bottom:6px">Events (${r.logs.length})</div>
+    ${events || '<p style="color:var(--muted);font-size:12px">no events</p>'}`;
+};
+
+window.closeDrawer = () => $('#drawer').classList.remove('open');
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
+
+$('#clearlog').onclick = () => { $('#log').innerHTML = ''; };
+
+render();
+setInterval(render, 6000);
+</script>
+</body>
+</html>

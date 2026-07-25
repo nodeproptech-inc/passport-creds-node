@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>House Concierge — PassportCreds by Node</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%234A9EFF'/><text x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='bold'>PC</text></svg>">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+  :root {
+    --bg: #F0F2F6; --card: #FFFFFF; --border: #DDE1EA;
+    --ink: #0D1428; --body: #4B5568; --muted: #9CA3AF;
+    --cyan: #4A9EFF; --teal: #3DDBD9;
+    --green: #16A34A; --green-bg: #DCFCE7;
+    --amber: #CA8A04; --amber-bg: #FEF9C3;
+    --red: #DC2626; --red-bg: #FEE2E2;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.55 'Inter', ui-sans-serif, system-ui, sans-serif; }
+
+  nav { background: var(--card); border-bottom: 1px solid var(--border); }
+  .nav-in { max-width: 1160px; margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-sq { width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(90deg, var(--cyan), var(--teal)); display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 12px; }
+  .logo b { font-size: 14px; }
+  .logo span { color: var(--muted); font-size: 12.5px; }
+  .navchips { display: flex; gap: 8px; align-items: center; }
+  .chain { font: 500 11.5px var(--mono); color: var(--body); border: 1px solid var(--border); border-radius: 999px; padding: 5px 11px; }
+  .chain i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--red); margin-right: 6px; }
+  .chain.up i { background: var(--green); }
+  .warpchip { display: none; font: 600 11px var(--mono); color: var(--amber); background: var(--amber-bg); border-radius: 999px; padding: 5px 11px; }
+  .warpchip.on { display: inline-block; }
+
+  .wrap { max-width: 1160px; margin: 0 auto; padding: 30px 24px 64px; }
+  .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--cyan); margin: 0 0 4px; }
+  h1 { font-size: 26px; font-weight: 700; margin: 0 0 6px; }
+  h1 .grad { background: linear-gradient(90deg, var(--cyan), var(--teal)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .sub { color: var(--body); max-width: 74ch; margin: 0 0 20px; }
+
+  /* Casa Azul header strip */
+  .house { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px;
+           display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+  .house h3 { margin: 0; font-size: 14px; }
+  .house p { margin: 2px 0 0; font-size: 12px; color: var(--body); }
+  .housechips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .stat { border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; font: 500 11.5px var(--mono); color: var(--body); }
+  .stat b { color: var(--ink); font-weight: 600; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 4px; }
+  .card h2 { margin: 0; font-size: 16px; text-transform: capitalize; }
+  .role { color: var(--body); font-size: 12px; margin: 1px 0 10px; }
+
+  .badge { font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: 4px 9px; border-radius: 999px; white-space: nowrap; }
+  .badge.ok, .badge.pay, .badge.paid, .badge.executed { background: var(--green-bg); color: var(--green); }
+  .badge.propose, .badge.pending-approval, .badge.unsettled { background: var(--amber-bg); color: var(--amber); }
+  .badge.no, .badge.reject, .badge.rejected, .badge.refused { background: var(--red-bg); color: var(--red); }
+  .badge.neutral { background: #EEF0F4; color: var(--muted); }
+
+  .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid #F1F3F7; font-size: 12.5px; }
+  .row:last-of-type { border-bottom: 0; }
+  .row .k { color: var(--body); }
+  .row .v { font: 500 11.5px var(--mono); color: var(--ink); display: flex; align-items: center; gap: 6px; }
+  .ok { color: var(--green); font-weight: 700; }
+  .no { color: var(--red); font-weight: 700; }
+  .reason { font: 500 10px var(--mono); color: var(--red); }
+
+  button { font: 600 12px 'Inter', sans-serif; padding: 7px 11px; border-radius: 8px; cursor: pointer; border: 1px solid var(--border); background: var(--card); color: var(--ink); }
+  button:hover:not(:disabled) { border-color: var(--cyan); }
+  button:disabled { opacity: .45; cursor: wait; }
+  button.primary { background: linear-gradient(90deg, var(--cyan), var(--teal)); border: 0; color: #fff; }
+  button.verify { color: var(--green); border-color: #BBE7C9; }
+  button.danger { color: var(--red); border-color: #F3C4C4; }
+  .ops { border-top: 1px dashed var(--border); margin-top: 14px; padding-top: 10px; }
+  .ops .label { font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 7px; }
+  .btns { display: flex; flex-wrap: wrap; gap: 7px; }
+
+  /* ticket composer */
+  input, select { font: 500 12.5px 'Inter', sans-serif; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: #fff; color: var(--ink); }
+  input:focus, select:focus { outline: 2px solid #D6E7FF; border-color: var(--cyan); }
+  .composer { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .composer input.desc { flex: 1 1 220px; }
+  .composer input.amt { width: 110px; font-family: var(--mono); }
+  .presets { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+
+  /* ticket feed */
+  .feed { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; max-height: 460px; overflow-y: auto; }
+  .ticket { border: 1px solid var(--border); border-radius: 10px; padding: 11px 13px; }
+  .ticket .head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .ticket .desc { font-weight: 600; font-size: 13px; }
+  .ticket .amt { font: 600 12px var(--mono); }
+  .ticket .why { color: var(--body); font-size: 12px; margin: 5px 0 0; }
+  .ticket .meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; font: 500 10.5px var(--mono); color: var(--muted); }
+  .ticket .meta a { color: var(--cyan); cursor: pointer; text-decoration: underline dotted; }
+  .ticket .meta a.ext { text-decoration: none; }
+  .ticket .refusal { margin-top: 6px; font: 500 11px var(--mono); color: var(--red); }
+  .ticket .unpaid { margin-top: 6px; font: 500 11px var(--mono); color: var(--amber); }
+  .empty { color: var(--muted); font-size: 12.5px; margin: 10px 0 0; }
+
+  /* approval queue */
+  .pay { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+  .pay .info { font-size: 12.5px; }
+  .pay .info .h { font: 500 10.5px var(--mono); color: var(--muted); }
+
+  .globalbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 20px 0 0; }
+  .globalbar .label { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-right: 4px; }
+  .localonly.hidden { display: none; }
+
+  .log-card { margin-top: 18px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
+  .log-head { display: flex; justify-content: space-between; align-items: baseline; }
+  .log-head h2 { margin: 0; font-size: 15px; }
+  #log { margin-top: 10px; max-height: 280px; overflow-y: auto; background: #0D1428; border-radius: 8px; padding: 12px 14px; font: 12px/1.75 var(--mono); color: #C7D0DE; }
+  #log .t { color: #5C6A82; }
+  #log .good { color: #4ADE80; }
+  #log .bad { color: #F87171; }
+  #log div { white-space: nowrap; }
+  #log a { color: #7EB6FF; cursor: pointer; text-decoration: underline dotted; }
+  #log a.ext { text-decoration: none; }
+
+  /* tx inspector drawer */
+  #drawer {
+    position: fixed; top: 0; right: -420px; width: 400px; height: 100vh; z-index: 50;
+    background: var(--card); border-left: 1px solid var(--border); box-shadow: -8px 0 30px rgba(13,20,40,.12);
+    transition: right .25s ease; overflow-y: auto; padding: 18px;
+  }
+  #drawer.open { right: 0; }
+  #drawer h2 { margin: 0 0 2px; font-size: 15px; }
+  #drawer .hash { font: 500 11px var(--mono); color: var(--body); word-break: break-all; margin: 0 0 12px; }
+  #drawer .meta { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 12px; margin-bottom: 14px; }
+  #drawer .meta .k { color: var(--muted); }
+  #drawer .meta .v { font: 500 11.5px var(--mono); }
+  #drawer .evt { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+  #drawer .evt .head { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+  #drawer .evt .head .c { color: var(--cyan); font-weight: 600; font-size: 11px; }
+  #drawer .evt .arg { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; padding: 1.5px 0; }
+  #drawer .evt .arg .k { color: var(--muted); }
+  #drawer .evt .arg .v { font: 500 10.5px var(--mono); word-break: break-all; text-align: right; }
+  #drawer .close { position: absolute; top: 12px; right: 14px; }
+  #drawer .status-ok { color: var(--green); font-weight: 700; }
+  #drawer .status-bad { color: var(--red); font-weight: 700; }
+
+  details { margin-top: 18px; color: var(--body); font-size: 13px; }
+  details summary { cursor: pointer; color: var(--ink); font-weight: 600; }
+  details ol { margin: 8px 0 0; padding-left: 20px; }
+  details li { margin: 4px 0; }
+  .foot { margin-top: 22px; color: var(--muted); font-size: 12px; }
+  .foot code { font-family: var(--mono); font-size: 11px; }
+</style>
+</head>
+<body>
+<nav><div class="nav-in">
+  <div class="logo"><div class="logo-sq">PC</div><div><b>PassportCreds</b> <span>by Node · House Concierge demo</span></div></div>
+  <div class="navchips">
+    <span class="warpchip" id="warpchip">⏱ clock warped</span>
+    <span class="chain" id="chain"><i></i><span id="chainlabel">connecting…</span></span>
+  </div>
+</div></nav>
+
+<div class="wrap">
+  <p class="eyebrow">Agent rail · Surface #5</p>
+  <h1>An agent that spends <span class="grad">on your passport</span></h1>
+  <p class="sub">Casa Azul's concierge holds no passport of its own. Its authority is the owners': the
+    <b>HouseTreasury</b> re-checks every owner against the <b>EligibilityGate</b> on every read, and the
+    <b>MandateHook</b> refuses the budget pool the moment the mandate dies or an owner falls out of
+    compliance. Routine tickets are paid autonomously (CASA → mUSD → x402 invoice); anything over the
+    per-transaction cap goes to the owners' approval queue.</p>
+
+  <div class="house" id="house"></div>
+
+  <div class="grid">
+    <div class="card" id="agent"></div>
+    <div class="card" id="owners"></div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-top"><div><h2>New ticket</h2><p class="role">A vendor request arrives — the concierge decides: pay, propose, or reject.</p></div></div>
+    <div class="composer">
+      <input class="desc" id="t-desc" placeholder="Leaky faucet in the kitchen" value="Leaky faucet in the kitchen">
+      <input class="amt" id="t-amount" inputmode="decimal" placeholder="120" value="120">
+      <select id="t-category">
+        <option value="plumbing">plumbing</option>
+        <option value="electrical">electrical</option>
+        <option value="cleaning">cleaning</option>
+        <option value="admin">admin</option>
+        <option value="jewelry">jewelry</option>
+      </select>
+      <button class="primary" id="t-submit" onclick="submitTicket()">Submit ticket</button>
+    </div>
+    <div class="presets">
+      <button onclick="preset('Leaky faucet in the kitchen','120','plumbing')">Leaky faucet — 120 mUSD (plumbing)</button>
+      <button onclick="preset('Roof repair after the storm','4500','plumbing')">Roof repair — 4500 mUSD (plumbing)</button>
+    </div>
+  </div>
+
+  <div class="grid" style="margin-top:16px">
+    <div class="card">
+      <div class="card-top"><div><h2>Ticket feed</h2><p class="role">Every decision, its rationale and its evidence hash.</p></div></div>
+      <div class="feed" id="tickets"></div>
+    </div>
+    <div class="card">
+      <div class="card-top"><div><h2>Approval queue</h2><p class="role">Above the cap: m-of-n owners, then the treasury pays mUSD directly.</p></div></div>
+      <div id="payments"></div>
+    </div>
+  </div>
+
+  <div class="globalbar" id="worldbar">
+    <span class="label">World</span>
+    <button onclick="fund()">＋ Fund 500 CASA</button>
+    <button class="danger" onclick="revokeMandate()">Revoke mandate</button>
+    <button class="verify" onclick="grantMandate()">Grant mandate</button>
+    <button class="localonly" onclick="timewarp()">⏩ Fast-forward 1 year</button>
+    <button class="localonly" onclick="resetWorld()">↺ Reset world</button>
+  </div>
+
+  <div class="log-card">
+    <div class="log-head"><h2>On-chain log</h2><button id="clearlog">clear</button></div>
+    <div id="log"><div class="t">waiting for first action… (click any tx hash to inspect it)</div></div>
+  </div>
+
+  <details>
+    <summary>Demo script (2 minutes)</summary>
+    <ol>
+      <li><b>Leaky faucet — 120 mUSD</b> → within the cap: the agent swaps CASA→mUSD through the gated pool and settles the plumber's <code>402</code> invoice. Two transactions, no human.</li>
+      <li><b>Roof repair — 4500 mUSD</b> → over the cap: <code>proposePayment</code> with the decision's <b>evidence hash</b>. Approve as operator, then as ana → the treasury executes.</li>
+      <li><b>A 'jewelry' ticket</b> → rejected before any chain call. The rationale is recorded either way.</li>
+      <li><b>Revoke Ana's KYC</b> → the agent's standing flips to <code>OWNER_NOT_COMPLIANT</code> and the next ticket is refused by the hook. Restore it → the agent is back.</li>
+      <li><b>Revoke the mandate</b> → <code>MANDATE_REVOKED</code>, until an owner re-grants it. The brake is one owner and one transaction.</li>
+      <li>Click any <b>tx hash</b> — decoded events, straight from the chain.</li>
+    </ol>
+  </details>
+
+  <p class="foot">Contracts: <code id="addrs"></code></p>
+</div>
+
+<div id="drawer">
+  <button class="close" onclick="closeDrawer()">✕</button>
+  <div id="drawer-content"><p class="hash">select a transaction…</p></div>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const short = (a) => a ? a.slice(0, 6) + '…' + a.slice(-4) : '—';
+// Everything the house does not author itself — ticket text, the decider's
+// rationale (an LLM's output when DECIDER=openai), refusal messages — goes
+// through here before it reaches innerHTML.
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+let LOCAL = true;
+let EXPLORER = null;
+let BUSY = false;
+
+const OWNER_ROLES = {
+  operator: 'Owner · issuer & simulated CRE',
+  ana: 'Owner · co-signer on large spend',
+};
+
+function txLink(hash) {
+  const ext = EXPLORER
+    ? ` <a class="ext" href="${EXPLORER}/tx/${hash}" target="_blank" rel="noopener" title="open in explorer">↗</a>`
+    : '';
+  return `<a onclick="inspect('${hash}')" title="inspect tx">${short(hash)}</a>${ext}`;
+}
+const txLinks = (hashes) => hashes.map(txLink).join(', ');
+
+function log(line) {
+  const div = document.createElement('div');
+  div.innerHTML = `<span class="t">${new Date().toLocaleTimeString()}</span> ${line}`;
+  $('#log').prepend(div);
+}
+
+function houseCard(s) {
+  return `<div><h3>Casa Azul <span style="color:var(--muted);font:500 11px var(--mono)">${short(s.contracts.treasury)}</span></h3>
+      <p>2 owners · ${s.house.approvalThreshold}-of-2 approvals above the cap · budget pool gated by MandateHook ${short(s.contracts.mandateHook)}</p></div>
+    <div class="housechips">
+      <span class="stat">treasury <b>${s.house.treasuryMusd}</b> mUSD</span>
+      <span class="stat">pool liquidity <b>${s.house.poolLiquidity}</b> · price ${s.house.poolPrice}</span>
+      <span class="stat">decider <b>${s.decider}</b></span>
+    </div>`;
+}
+
+function agentCard(a) {
+  const pill = a.standing.ok
+    ? '<span class="badge ok">in good standing</span>'
+    : `<span class="badge no">${esc(a.standing.reason ?? 'no standing')}</span>`;
+  return `<div class="card-top">
+      <div><h2>Concierge</h2><p class="role">Autonomous house agent — holds no passport of its own</p></div>
+      ${pill}
+    </div>
+    <div class="row"><span class="k">wallet</span><span class="v">${short(a.wallet)}</span></div>
+    <div class="row"><span class="k">standing reason</span><span class="v">${a.standing.ok ? '<span class="ok">✓ mandate live · owners compliant</span>' : `<span class="reason">${esc(a.standing.reason)}</span>`}</span></div>
+    <div class="row"><span class="k">CASA budget</span><span class="v">${a.casa}</span></div>
+    <div class="row"><span class="k">mUSD held</span><span class="v">${a.musd}</span></div>
+    <div class="row"><span class="k">per-tx cap</span><span class="v">${a.perTxCap} mUSD</span></div>`;
+}
+
+function ownersCard(owners) {
+  const rows = owners.map((o) => `
+    <div class="row"><span class="k">${o.name} <span style="color:var(--muted)">${short(o.wallet)}</span></span>
+      <span class="v">
+        <span class="badge ${o.compliant ? 'ok' : 'no'}">${o.compliant ? 'compliant' : 'not compliant'}</span>
+        ${o.compliant
+          ? `<button class="danger" ${BUSY ? 'disabled' : ''} onclick="revokeKyc('${o.name}')">Revoke KYC</button>`
+          : `<button class="verify" ${BUSY ? 'disabled' : ''} onclick="restoreKyc('${o.name}')">Restore KYC</button>`}
+      </span></div>
+    <p class="role" style="margin:0 0 6px">${OWNER_ROLES[o.name] ?? ''}</p>`).join('');
+  return `<div class="card-top">
+      <div><h2>Owners</h2><p class="role">The agent's authority is exactly their live compliance</p></div>
+    </div>${rows}`;
+}
+
+// A settled swap with an unpaid vendor is its own outcome, not a refusal —
+// the money already left the agent's CASA.
+const STATUS_LABEL = { unsettled: 'unsettled — swap done, vendor unpaid' };
+
+function ticketRow(t) {
+  const action = t.decision?.action ?? '—';
+  const status = t.status ?? action;
+  const conf = t.decision ? ` · confidence ${Number(t.decision.confidence).toFixed(2)}` : '';
+  return `<div class="ticket">
+    <div class="head">
+      <span class="desc">${esc(t.description)}</span>
+      <span><span class="amt">${t.amount} mUSD</span> <span class="badge ${esc(status)}">${esc(STATUS_LABEL[status] ?? status)}</span></span>
+    </div>
+    <p class="why">${esc(t.decision?.rationale ?? '')}${conf}</p>
+    ${t.refusal ? `<div class="refusal">${t.refusal.source === 'treasury' ? 'treasury' : 'hook'} refused: ${esc(t.refusal.reason)}${t.refusal.message ? ` — ${esc(t.refusal.message)}` : ''}</div>` : ''}
+    ${t.settleError ? `<div class="unpaid">swap settled, vendor unpaid: ${esc(t.settleError)}</div>` : ''}
+    <div class="meta">
+      <span>#${t.id} · ${esc(t.category)}</span>
+      <span>evidence ${short(t.evidenceHash)}</span>
+      ${t.paymentId ? `<span>payment #${t.paymentId}</span>` : ''}
+      ${t.txHashes.length ? `<span>${txLinks(t.txHashes)}</span>` : ''}
+    </div>
+  </div>`;
+}
+
+function paymentRow(p) {
+  const dis = BUSY ? 'disabled' : '';
+  return `<div class="pay">
+    <div class="info"><b>#${p.id}</b> · ${p.amount} mUSD → ${short(p.vendor)}
+      <div class="h">evidence ${short(p.evidenceHash)} · ${p.approvals} approval${p.approvals === 1 ? '' : 's'}</div></div>
+    ${p.executed
+      ? '<span class="badge executed">executed</span>'
+      : `<span class="btns">
+           <button ${dis} onclick="approve('operator',${p.id})">Approve as operator</button>
+           <button ${dis} onclick="approve('ana',${p.id})">Approve as ana</button>
+         </span>`}
+  </div>`;
+}
+
+async function render() {
+  try {
+    const s = await fetch('/api/state').then((r) => r.json());
+    LOCAL = s.local;
+    EXPLORER = s.explorer;
+    $('#chain').classList.add('up');
+    $('#chainlabel').textContent =
+      (LOCAL ? 'anvil · ' : 'chain ') + s.chainId + ' · ' + new Date(s.now * 1000).toISOString().slice(0, 10);
+    $('#warpchip').classList.toggle('on', Boolean(s.warped));
+    document.querySelectorAll('.localonly').forEach((b) => b.classList.toggle('hidden', !LOCAL));
+    $('#house').innerHTML = houseCard(s);
+    $('#agent').innerHTML = agentCard(s.agent);
+    $('#owners').innerHTML = ownersCard(s.owners);
+    $('#tickets').innerHTML = s.tickets.length
+      ? s.tickets.map(ticketRow).join('')
+      : '<p class="empty">no tickets yet — submit one above, or use a preset.</p>';
+    $('#payments').innerHTML = s.payments.length
+      ? s.payments.map(paymentRow).join('')
+      : '<p class="empty">nothing pending — over-cap tickets land here.</p>';
+    $('#addrs').textContent =
+      `treasury ${short(s.contracts.treasury)} · hook ${short(s.contracts.mandateHook)} · gate ${short(s.contracts.eligibilityGate)} · CASA ${short(s.contracts.casa)} · mUSD ${short(s.contracts.musd)}`;
+  } catch {
+    $('#chain').classList.remove('up');
+    $('#chainlabel').textContent = 'server unreachable';
+  }
+}
+
+async function post(path, body) {
+  const r = await fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  return r.json();
+}
+
+async function act(fn) {
+  BUSY = true;
+  $('#t-submit').disabled = true;
+  render();
+  try { await fn(); } finally { BUSY = false; $('#t-submit').disabled = false; render(); }
+}
+
+window.preset = (description, amount, category) => {
+  $('#t-desc').value = description;
+  $('#t-amount').value = amount;
+  $('#t-category').value = category;
+  submitTicket();
+};
+
+window.submitTicket = () => act(async () => {
+  const description = $('#t-desc').value.trim() || 'house ticket';
+  const amount = $('#t-amount').value.trim();
+  const category = $('#t-category').value;
+  log(`ticket: ${esc(description)} — ${esc(amount)} mUSD (${esc(category)}) → asking the concierge…`);
+  const r = await post('/api/ticket', { description, amount, category });
+  // an 'unsettled' ticket comes back ok:false but with a record to show
+  if (!r.ticket) { log(`ticket <span class="bad">✗</span> ${esc(r.message)}`); return; }
+  const t = r.ticket;
+  const tail = t.txHashes.length ? ` ${txLinks(t.txHashes)}` : '';
+  if (t.status === 'paid') log(`concierge <span class="good">paid</span> ${t.amount} mUSD — ${esc(t.decision.rationale)}${tail}`);
+  else if (t.status === 'pending-approval') log(`concierge <span class="good">proposed</span> payment #${t.paymentId} (${t.amount} mUSD) — needs owner approval${tail}`);
+  else if (t.status === 'rejected') log(`concierge <span class="bad">rejected</span> the ticket — ${esc(t.decision.rationale)}`);
+  else if (t.status === 'refused') log(`chain <span class="bad">refused</span> — ${esc(t.refusal.message)}`);
+  else if (t.status === 'unsettled') log(`swap done, vendor <span class="bad">unpaid</span> — ${esc(t.settleError ?? '')}${tail}`);
+  else log(`ticket ${esc(t.status)}${tail}`);
+});
+
+window.approve = (owner, id) => act(async () => {
+  const r = await post('/api/approve', { owner, id });
+  if (r.ok) {
+    log(`${owner} approved payment #${id} <span class="good">✓</span>${r.executed ? ' — threshold met, <b>executed</b>' : ''} ${txLinks(r.txHashes)}`);
+  } else log(`${owner} approve #${id} <span class="bad">✗</span> ${esc(r.message)}`);
+});
+
+window.fund = () => act(async () => {
+  const r = await post('/api/fund', { amount: '500' });
+  if (r.ok) log(`owners funded the concierge with 500 CASA <span class="good">✓</span> ${txLinks(r.txHashes)}`);
+  else log(`fund <span class="bad">✗</span> ${esc(r.message)}`);
+});
+
+window.revokeMandate = () => act(async () => {
+  const r = await post('/api/revoke-mandate', {});
+  if (r.ok) log(`owner revoked the mandate <span class="good">✓</span> — the pool will refuse the agent ${txLinks(r.txHashes)}`);
+  else log(`revoke mandate <span class="bad">✗</span> ${esc(r.message)}`);
+});
+
+window.grantMandate = () => act(async () => {
+  const r = await post('/api/grant-mandate', {});
+  if (r.ok) log(`owner granted the mandate (200 mUSD per tx, 1 year) <span class="good">✓</span> ${txLinks(r.txHashes)}`);
+  else log(`grant mandate <span class="bad">✗</span> ${esc(r.message)}`);
+});
+
+window.revokeKyc = (owner) => act(async () => {
+  const r = await post('/api/revoke-owner-kyc', { owner });
+  if (r.ok) log(`issuer: revoked ${owner}'s KYC claim <span class="good">✓</span> — agent standing follows ${txLinks(r.txHashes)}`);
+  else log(`revoke KYC of ${owner} <span class="bad">✗</span> ${esc(r.message)}`);
+});
+
+window.restoreKyc = (owner) => act(async () => {
+  const r = await post('/api/restore-owner-kyc', { owner });
+  if (r.ok) log(`issuer: restored ${owner}'s KYC claim <span class="good">✓</span> ${txLinks(r.txHashes)}`);
+  else log(`restore KYC of ${owner} <span class="bad">✗</span> ${esc(r.message)}`);
+});
+
+window.timewarp = async () => {
+  const r = await post('/api/timewarp', { days: 366 });
+  log(r.ok ? `world: fast-forwarded ${r.warpedDays} days <span class="good">✓</span>` : `timewarp <span class="bad">✗</span> ${esc(r.message)}`);
+  render();
+};
+
+window.resetWorld = async () => {
+  log('world: resetting chain + redeploying…');
+  const r = await post('/api/reset', {});
+  if (r.ok) {
+    $('#log').innerHTML = '';
+    log('world: reset <span class="good">✓</span> fresh chain, fresh contracts, clock back to today');
+  } else log(`reset <span class="bad">✗</span> ${esc(r.message)}`);
+  render();
+};
+
+// --- tx inspector ---
+
+window.inspect = async (hash) => {
+  $('#drawer').classList.add('open');
+  $('#drawer-content').innerHTML = `<h2>Transaction</h2><p class="hash">${hash}</p><p style="color:var(--muted)">loading…</p>`;
+  const r = await fetch('/api/tx/' + hash).then((x) => x.json());
+  if (!r.ok) {
+    $('#drawer-content').innerHTML = `<h2>Transaction</h2><p class="hash">${hash}</p><p class="status-bad">${esc(r.message)}</p>`;
+    return;
+  }
+  const events = r.logs.map((l) => `
+    <div class="evt">
+      <div class="head"><span>${esc(l.name)}</span><span class="c">${esc(l.contract)}</span></div>
+      ${l.args ? Object.entries(l.args).map(([k, v]) =>
+        `<div class="arg"><span class="k">${esc(k)}</span><span class="v">${esc(v)}</span></div>`).join('') :
+        `<div class="arg"><span class="k">topic</span><span class="v">${esc(l.topic ?? '')}</span></div>`}
+    </div>`).join('');
+  $('#drawer-content').innerHTML = `
+    <h2>Transaction</h2>
+    <p class="hash">${hash}${EXPLORER ? ` <a href="${EXPLORER}/tx/${hash}" target="_blank" rel="noopener">open in explorer ↗</a>` : ''}</p>
+    <div class="meta">
+      <span class="k">status</span><span class="v ${r.status === 'success' ? 'status-ok' : 'status-bad'}">${r.status}</span>
+      <span class="k">block</span><span class="v">${r.blockNumber} · ${new Date(r.timestamp * 1000).toLocaleString()}</span>
+      <span class="k">from</span><span class="v">${r.from}</span>
+      <span class="k">to</span><span class="v">${r.contract ?? ''} ${r.to ?? ''}</span>
+      <span class="k">gas used</span><span class="v">${Number(r.gasUsed).toLocaleString()}</span>
+    </div>
+    <div class="head" style="font-weight:600;font-size:12px;margin-bottom:6px">Events (${r.logs.length})</div>
+    ${events || '<p style="color:var(--muted);font-size:12px">no events</p>'}`;
+};
+
+window.closeDrawer = () => $('#drawer').classList.remove('open');
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
+
+$('#clearlog').onclick = () => { $('#log').innerHTML = ''; };
+
+render();
+setInterval(() => { if (!BUSY) render(); }, 6000);
+</script>
+</body>
+</html>

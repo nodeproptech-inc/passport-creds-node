@@ -58,3 +58,9 @@ lcov.info
 *.pem
 .cache/
 tmp/
+
+# hook demo (generated)
+apps/hook-demo/addresses.json
+
+# concierge demo (generated)
+apps/concierge/addresses.json
