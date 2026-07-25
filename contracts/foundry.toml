@@ -10,6 +10,8 @@ optimizer_runs = 200
 remappings = [
     "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
 ]
+# DeployPassportKit.s.sol writes deployments/<chainid>.json (addresses + startBlock for the subgraph/.env)
+fs_permissions = [{ access = "write", path = "./deployments" }]
 
 [profile.default.fuzz]
 runs = 256

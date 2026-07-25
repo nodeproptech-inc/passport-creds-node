@@ -59,6 +59,7 @@ type Props = {
   passportStatus: PassportStatus;
   kycStatus?: ClaimStatus;
   accreditedStatus?: ClaimStatus;
+  personhood?: boolean;
 };
 
 export function ComplianceProgressStepper({
@@ -66,6 +67,7 @@ export function ComplianceProgressStepper({
   passportStatus,
   kycStatus,
   accreditedStatus,
+  personhood = false,
 }: Props) {
   const passportStepStatus = (): StepStatus => {
     if (passportStatus === 'GREEN') return 'PASSED';
@@ -81,7 +83,12 @@ export function ComplianceProgressStepper({
     return 'NOT_STARTED';
   };
 
-  const steps: Step[] = [
+  const steps: Step[] = personhood ? [
+    { label: 'Wallet Connected', status: walletConnected ? 'PASSED' : 'NOT_STARTED' },
+    { label: 'World ID Personhood', status: getStepStatus(kycStatus) },
+    { label: 'Passport Claim', status: passportStepStatus() },
+    { label: 'Deal Room Access', status: dealRoomStatus() },
+  ] : [
     {
       label: 'Wallet Connected',
       status: walletConnected ? 'PASSED' : 'NOT_STARTED',

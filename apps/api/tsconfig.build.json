@@ -3,6 +3,16 @@
   "compilerOptions": {
     "rootDir": "src"
   },
-  "include": ["src/**/*"],
+  "include": [
+    "src/main.ts",
+    "src/app.module.ts",
+    "src/common/**/*.ts",
+    "src/contract/**/*.ts",
+    "src/demo/**/*.ts",
+    "src/eligibility/**/*.ts",
+    "src/identity/**/*.ts",
+    "src/issuer/**/*.ts",
+    "src/world-id/**/*.ts"
+  ],
   "exclude": ["node_modules", "../../node_modules", "test", "dist", "**/*spec.ts"]
 }

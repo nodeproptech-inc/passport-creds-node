@@ -23,6 +23,8 @@
     "@nestjs/swagger": "^7.4.2",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "@worldcoin/idkit": "^4.2.1",
+    "@worldcoin/idkit-server": "^1.1.1",
     "axios": "^1.17.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
